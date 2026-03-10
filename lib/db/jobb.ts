@@ -48,6 +48,15 @@ export async function upsertJobb(
   )
 }
 
+export async function updateJobbPresenterad(jobbId: string, presenterad: string): Promise<void> {
+  const { error } = await supabase
+    .from('jobb')
+    .update({ presenterad })
+    .eq('id', jobbId)
+
+  if (error) throw new Error(`Kunde inte uppdatera presenterad: ${error.message}`)
+}
+
 function rowToJobb(row: Record<string, unknown>): Jobb {
   return {
     id: row.id as string,

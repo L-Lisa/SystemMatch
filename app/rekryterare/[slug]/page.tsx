@@ -20,31 +20,45 @@ const RECRUITER_MAP: Record<string, string> = {
   '4': 'Rekryterare 4',
 }
 
-function PresenteradList({ presenterad, kandidater }: { presenterad: string; kandidater: Kandidat[] }) {
-  if (!presenterad) return null
+function PresenteradList({
+  presenterad,
+  kandidater,
+  onEdit,
+}: {
+  presenterad: string
+  kandidater: Kandidat[]
+  onEdit: () => void
+}) {
   const names = presenterad.split(/[;,]/).map((n) => n.trim()).filter(Boolean)
   const kandidatNames = new Set(kandidater.map((k) => k.namn.toLowerCase()))
 
   return (
     <div className="mt-2">
-      <p className="text-xs text-gray-400 mb-1">Presenterad:</p>
-      <div className="flex flex-wrap gap-1">
-        {names.map((name, i) => {
-          const isMatch = kandidatNames.has(name.toLowerCase())
-          return (
-            <span
-              key={i}
-              className={`text-xs px-1.5 py-0.5 rounded ${
-                isMatch
-                  ? 'bg-indigo-100 text-indigo-800 font-bold'
-                  : 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              {name}
-            </span>
-          )
-        })}
+      <div className="flex items-center gap-1 mb-1">
+        <p className="text-xs text-gray-400">Presenterad:</p>
+        <button onClick={onEdit} className="text-xs text-gray-300 hover:text-indigo-400" title="Redigera">
+          ✏
+        </button>
       </div>
+      {names.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {names.map((name, i) => {
+            const isMatch = kandidatNames.has(name.toLowerCase())
+            return (
+              <span
+                key={i}
+                className={`text-xs px-1.5 py-0.5 rounded ${
+                  isMatch
+                    ? 'bg-indigo-100 text-indigo-800 font-bold'
+                    : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                {name}
+              </span>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -56,6 +70,7 @@ function JobbKort({
   matchResults,
   matching,
   onFeedback,
+  onPresenteradUpdate,
 }: {
   jobb: Jobb
   kandidater: Kandidat[]
@@ -63,12 +78,36 @@ function JobbKort({
   matchResults: MatchResult[] | null
   matching: boolean
   onFeedback: (jobb: Jobb) => void
+  onPresenteradUpdate: (jobbId: string, presenterad: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [editingPresenterad, setEditingPresenterad] = useState(false)
+  const [presenteradDraft, setPresenteradDraft] = useState(jobb.presenterad || '')
+  const [savingPresenterad, setSavingPresenterad] = useState(false)
+  const [presenteradError, setPresenteradError] = useState<string | null>(null)
 
   useEffect(() => {
     if (matchResults && matchResults.length > 0) setExpanded(true)
   }, [matchResults])
+
+  async function savePresenterad() {
+    setSavingPresenterad(true)
+    setPresenteradError(null)
+    try {
+      const res = await fetch(`/api/jobb/${jobb.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presenterad: presenteradDraft }),
+      })
+      if (!res.ok) throw new Error('Kunde inte spara')
+      onPresenteradUpdate(jobb.id, presenteradDraft)
+      setEditingPresenterad(false)
+    } catch (err) {
+      setPresenteradError(err instanceof Error ? err.message : 'Okänt fel')
+    } finally {
+      setSavingPresenterad(false)
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
@@ -112,7 +151,45 @@ function JobbKort({
         </div>
       )}
 
-      <PresenteradList presenterad={jobb.presenterad} kandidater={kandidater} />
+      {editingPresenterad ? (
+        <div className="mt-2">
+          <p className="text-xs text-gray-400 mb-1">Presenterad (komma-separerat):</p>
+          <input
+            autoFocus
+            type="text"
+            value={presenteradDraft}
+            onChange={(e) => setPresenteradDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') savePresenterad()
+              if (e.key === 'Escape') setEditingPresenterad(false)
+            }}
+            className="w-full text-xs border border-indigo-300 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+            placeholder="Namn1, Namn2, ..."
+          />
+          {presenteradError && <p className="text-xs text-red-500 mt-1">{presenteradError}</p>}
+          <div className="flex gap-2 mt-1.5">
+            <button
+              onClick={savePresenterad}
+              disabled={savingPresenterad}
+              className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {savingPresenterad ? 'Sparar...' : 'Spara'}
+            </button>
+            <button
+              onClick={() => { setEditingPresenterad(false); setPresenteradDraft(jobb.presenterad || '') }}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+            >
+              Avbryt
+            </button>
+          </div>
+        </div>
+      ) : (
+        <PresenteradList
+          presenterad={jobb.presenterad}
+          kandidater={kandidater}
+          onEdit={() => { setPresenteradDraft(jobb.presenterad || ''); setEditingPresenterad(true) }}
+        />
+      )}
 
       {/* Match results */}
       {matchResults && matchResults.length > 0 && (
@@ -227,6 +304,19 @@ export default function RekryterarePage() {
     }
   }
 
+  function handlePresenteradUpdate(jobbId: string, presenterad: string) {
+    setData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        rekryterare: prev.rekryterare.map((r) => ({
+          ...r,
+          jobb: r.jobb.map((j) => (j.id === jobbId ? { ...j, presenterad } : j)),
+        })),
+      }
+    })
+  }
+
   const rekryterare = data?.rekryterare.find(
     (r) => r.namn.toLowerCase() === rekryterarNamn.toLowerCase()
   )
@@ -294,6 +384,7 @@ export default function RekryterarePage() {
             matchResults={matchResults[j.id] || null}
             matching={matchingJobbId === j.id}
             onFeedback={(jobb) => setFeedbackJobb(jobb)}
+            onPresenteradUpdate={handlePresenteradUpdate}
           />
         ))}
       </div>
