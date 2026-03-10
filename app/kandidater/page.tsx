@@ -120,11 +120,12 @@ export default function KandidaterPage() {
     })
 
     try {
-      await fetch(`/api/kandidater/${id}`, {
+      const res = await fetch(`/api/kandidater/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'cv', cvIndex, url }),
       })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
     } catch (e) {
       console.error('Kunde inte spara CV-länk:', e)
     }

@@ -2,16 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { ExcelData, Jobb, Kandidat } from '@/lib/types'
+import { ExcelData, Jobb, Kandidat, MatchResult } from '@/lib/types'
 import Flagga from '@/components/Flagga'
 import FeedbackModal from '@/components/FeedbackModal'
-
-interface MatchResult {
-  kandidatId: string
-  score: number
-  motivering: string
-  vinkel: string
-}
 
 const RECRUITER_MAP: Record<string, string> = {
   nikola: 'Nikola',

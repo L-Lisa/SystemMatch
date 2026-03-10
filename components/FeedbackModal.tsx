@@ -72,7 +72,7 @@ export default function FeedbackModal({
         })
       )
       setSaved(true)
-      setTimeout(onClose, 1200)
+      setTimeout(onClose, 2500)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Något gick fel, försök igen.')
     } finally {

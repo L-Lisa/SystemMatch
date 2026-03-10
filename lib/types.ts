@@ -17,6 +17,13 @@ export interface Kandidat {
   rad: number // Excel row index
 }
 
+export interface MatchResult {
+  kandidatId: string
+  score: number
+  motivering: string
+  vinkel: string
+}
+
 export interface Jobb {
   id: string
   tjänst: string
