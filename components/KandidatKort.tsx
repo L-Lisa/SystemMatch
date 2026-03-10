@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Kandidat } from '@/lib/types'
 import Flagga from './Flagga'
 
@@ -12,40 +12,61 @@ interface KandidatKortProps {
 
 export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: KandidatKortProps) {
   const [expanded, setExpanded] = useState(false)
-  const [editingCV, setEditingCV] = useState<1 | 2 | 3 | null>(null)
-  const [cvInput, setCvInput] = useState('')
-  const [cvStatus, setCvStatus] = useState<Record<string, 'idle' | 'checking' | 'ok' | 'error'>>({})
-  const [cvError, setCvErrorMsg] = useState<Record<string, string>>({})
+  const [uploadingCV, setUploadingCV] = useState<1 | 2 | 3 | null>(null)
+  const [cvStatus, setCvStatus] = useState<Record<number, 'idle' | 'uploading' | 'ok' | 'error'>>({})
+  const [cvError, setCvError] = useState<Record<number, string>>({})
+  const fileInputRefs = {
+    1: useRef<HTMLInputElement>(null),
+    2: useRef<HTMLInputElement>(null),
+    3: useRef<HTMLInputElement>(null),
+  }
 
-  const cvLinks = [
+  const cvSlots = [
     { idx: 1 as const, url: kandidat.cv1 },
     { idx: 2 as const, url: kandidat.cv2 },
     { idx: 3 as const, url: kandidat.cv3 },
   ]
 
-  async function handleCVSave(idx: 1 | 2 | 3) {
-    const url = cvInput.trim()
-    if (!url) return
-    setCvStatus((s) => ({ ...s, [idx]: 'checking' }))
+  async function handleFileUpload(idx: 1 | 2 | 3, file: File) {
+    setCvStatus((s) => ({ ...s, [idx]: 'uploading' }))
+    setCvError((e) => ({ ...e, [idx]: '' }))
     try {
-      const res = await fetch('/api/cv', {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('cvIndex', String(idx))
+
+      const res = await fetch(`/api/kandidater/${kandidat.id}/cv`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: form,
       })
       const data = await res.json()
-      if (data.success) {
-        setCvStatus((s) => ({ ...s, [idx]: 'ok' }))
-        onCVUpdate(kandidat.id, idx, url)
-        setEditingCV(null)
-        setCvInput('')
-      } else {
-        setCvStatus((s) => ({ ...s, [idx]: 'error' }))
-        setCvErrorMsg((e) => ({ ...e, [idx]: data.error || 'Kunde inte läsa CV' }))
-      }
-    } catch {
+
+      if (!res.ok) throw new Error(data.error || 'Uppladdning misslyckades')
+
+      onCVUpdate(kandidat.id, idx, data.url)
+      setCvStatus((s) => ({ ...s, [idx]: 'ok' }))
+      setTimeout(() => setCvStatus((s) => ({ ...s, [idx]: 'idle' })), 2000)
+    } catch (err) {
       setCvStatus((s) => ({ ...s, [idx]: 'error' }))
-      setCvErrorMsg((e) => ({ ...e, [idx]: 'Nätverksfel' }))
+      setCvError((e) => ({ ...e, [idx]: err instanceof Error ? err.message : 'Okänt fel' }))
+    }
+    setUploadingCV(null)
+  }
+
+  async function handleDelete(idx: 1 | 2 | 3) {
+    setCvStatus((s) => ({ ...s, [idx]: 'uploading' }))
+    try {
+      const res = await fetch(`/api/kandidater/${kandidat.id}/cv`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvIndex: idx }),
+      })
+      if (!res.ok) throw new Error('Kunde inte ta bort CV')
+      onCVUpdate(kandidat.id, idx, '')
+      setCvStatus((s) => ({ ...s, [idx]: 'idle' }))
+    } catch (err) {
+      setCvStatus((s) => ({ ...s, [idx]: 'error' }))
+      setCvError((e) => ({ ...e, [idx]: err instanceof Error ? err.message : 'Okänt fel' }))
     }
   }
 
@@ -66,115 +87,82 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
 
       {/* Flaggor */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <Flagga
-          label="Körkort"
-          active={kandidat.korkort}
-          color="green"
-          onClick={() => onFlagToggle(kandidat.id, 'korkort', !kandidat.korkort)}
-        />
-        <Flagga
-          label="Nystartsjobb"
-          active={kandidat.nystartsjobb}
-          color="blue"
-          onClick={() => onFlagToggle(kandidat.id, 'nystartsjobb', !kandidat.nystartsjobb)}
-        />
-        <Flagga
-          label="Introduktionsjobb"
-          active={kandidat.introduktionsjobb}
-          color="purple"
-          onClick={() => onFlagToggle(kandidat.id, 'introduktionsjobb', !kandidat.introduktionsjobb)}
-        />
+        <Flagga label="Körkort" active={kandidat.korkort} color="green"
+          onClick={() => onFlagToggle(kandidat.id, 'korkort', !kandidat.korkort)} />
+        <Flagga label="Nystartsjobb" active={kandidat.nystartsjobb} color="blue"
+          onClick={() => onFlagToggle(kandidat.id, 'nystartsjobb', !kandidat.nystartsjobb)} />
+        <Flagga label="Introduktionsjobb" active={kandidat.introduktionsjobb} color="purple"
+          onClick={() => onFlagToggle(kandidat.id, 'introduktionsjobb', !kandidat.introduktionsjobb)} />
         {kandidat.loneansprak && (
-          <Flagga
-            label="Lön"
-            value={kandidat.loneansprak}
-            active={true}
-            color="amber"
-            readonly
-          />
+          <Flagga label="Lön" value={kandidat.loneansprak} active color="amber" readonly />
         )}
-        <Flagga
-          label="Städ"
-          active={kandidat.stadsFlag}
-          color="teal"
-          onClick={() => onFlagToggle(kandidat.id, 'stadsFlag', !kandidat.stadsFlag)}
-        />
-        <Flagga
-          label="Restaurang"
-          active={kandidat.restaurangFlag}
-          color="rose"
-          onClick={() => onFlagToggle(kandidat.id, 'restaurangFlag', !kandidat.restaurangFlag)}
-        />
+        <Flagga label="Städ" active={kandidat.stadsFlag} color="teal"
+          onClick={() => onFlagToggle(kandidat.id, 'stadsFlag', !kandidat.stadsFlag)} />
+        <Flagga label="Restaurang" active={kandidat.restaurangFlag} color="rose"
+          onClick={() => onFlagToggle(kandidat.id, 'restaurangFlag', !kandidat.restaurangFlag)} />
       </div>
 
-      {/* CV Links */}
+      {/* CV Slots */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {cvLinks.map(({ idx, url }) => (
+        {cvSlots.map(({ idx, url }) => (
           <div key={idx}>
+            <input
+              ref={fileInputRefs[idx]}
+              type="file"
+              accept=".pdf,.docx,.doc"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleFileUpload(idx, file)
+                e.target.value = ''
+              }}
+            />
+
             {url ? (
               <div className="flex items-center gap-1">
                 <a
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded hover:bg-indigo-100 transition-colors"
+                  className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                    cvStatus[idx] === 'ok'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                  }`}
                 >
-                  CV {idx}
+                  {cvStatus[idx] === 'uploading' ? '...' : cvStatus[idx] === 'ok' ? '✓ CV ' + idx : 'CV ' + idx}
                 </a>
                 <button
-                  onClick={() => { setEditingCV(idx); setCvInput(url) }}
-                  className="text-gray-300 hover:text-gray-500 text-xs"
-                  title="Redigera länk"
+                  onClick={() => fileInputRefs[idx].current?.click()}
+                  className="text-gray-300 hover:text-indigo-400 text-xs"
+                  title="Byt ut CV"
                 >
-                  ✎
+                  ↑
+                </button>
+                <button
+                  onClick={() => handleDelete(idx)}
+                  className="text-gray-300 hover:text-red-400 text-xs"
+                  title="Ta bort CV"
+                >
+                  ✕
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => { setEditingCV(idx); setCvInput('') }}
-                className="text-xs bg-gray-50 text-gray-400 border border-dashed border-gray-200 px-2 py-0.5 rounded hover:border-indigo-300 hover:text-indigo-400 transition-colors"
+                onClick={() => fileInputRefs[idx].current?.click()}
+                disabled={cvStatus[idx] === 'uploading'}
+                className="text-xs bg-gray-50 text-gray-400 border border-dashed border-gray-200 px-2 py-0.5 rounded hover:border-indigo-300 hover:text-indigo-400 transition-colors disabled:opacity-50"
               >
-                + CV {idx}
+                {cvStatus[idx] === 'uploading' ? '...' : `+ CV ${idx}`}
               </button>
+            )}
+
+            {cvStatus[idx] === 'error' && (
+              <p className="text-xs text-red-500 mt-1">⚠ {cvError[idx]}</p>
             )}
           </div>
         ))}
       </div>
-
-      {/* CV Edit Input */}
-      {editingCV && (
-        <div className="mb-3 p-2 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500 mb-1">CV {editingCV} — klistra in Google Drive-länk</p>
-          <div className="flex gap-1">
-            <input
-              type="text"
-              value={cvInput}
-              onChange={(e) => setCvInput(e.target.value)}
-              placeholder="https://drive.google.com/..."
-              className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-400"
-            />
-            <button
-              onClick={() => handleCVSave(editingCV)}
-              disabled={cvStatus[editingCV] === 'checking'}
-              className="text-xs bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600 disabled:opacity-50"
-            >
-              {cvStatus[editingCV] === 'checking' ? '...' : 'Testa & spara'}
-            </button>
-            <button
-              onClick={() => { setEditingCV(null); setCvInput('') }}
-              className="text-xs text-gray-400 hover:text-gray-600 px-1"
-            >
-              ✕
-            </button>
-          </div>
-          {cvStatus[editingCV] === 'error' && (
-            <p className="text-xs text-red-500 mt-1">⚠ {cvError[editingCV]}</p>
-          )}
-          {cvStatus[editingCV] === 'ok' && (
-            <p className="text-xs text-green-600 mt-1">✓ CV läst och sparad</p>
-          )}
-        </div>
-      )}
 
       {/* Expandable Keywords */}
       {kandidat.keywords.length > 0 && (
@@ -189,10 +177,7 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
           {expanded && (
             <div className="mt-2 flex flex-wrap gap-1">
               {kandidat.keywords.map((kw, i) => (
-                <span
-                  key={i}
-                  className="text-xs bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded border border-gray-100"
-                >
+                <span key={i} className="text-xs bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded border border-gray-100">
                   {kw}
                 </span>
               ))}

@@ -54,8 +54,8 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
       .single()
 
     if (existing) {
-      // Excel owns: bransch, merBransch, slutdatum, loneansprak, boolean flags from Excel
-      // App owns: cv1/2/3, stads_flag, restaurang_flag
+      // Excel owns: bransch, merBransch, slutdatum, loneansprak, boolean flags
+      // App owns: cv1/2/3, stads_flag, restaurang_flag — never overwritten by import
       await supabase
         .from('kandidater')
         .update({
@@ -73,6 +73,7 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
         })
         .eq('id', existing.id)
     } else {
+      // New candidate — no CVs yet, uploaded via app
       await supabase.from('kandidater').insert({
         namn: k.namn,
         bransch: k.bransch,
@@ -82,9 +83,9 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
         korkort: k.korkort,
         introduktionsjobb: k.introduktionsjobb,
         slutdatum: k.slutdatum,
-        cv1: k.cv1,
-        cv2: k.cv2,
-        cv3: k.cv3,
+        cv1: '',
+        cv2: '',
+        cv3: '',
         stads_flag: k.stadsFlag,
         restaurang_flag: k.restaurangFlag,
         keywords: k.keywords,
