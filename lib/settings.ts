@@ -2,7 +2,9 @@ import * as fs from 'fs'
 import path from 'path'
 import { AppSettings } from './types'
 
-const SETTINGS_PATH = path.join(process.cwd(), 'data', 'settings.json')
+const DATA_DIR =
+  process.env.NODE_ENV === 'production' ? '/tmp' : path.join(process.cwd(), 'data')
+const SETTINGS_PATH = path.join(DATA_DIR, 'settings.json')
 
 const DEFAULT_PROMPT = `Du är en erfaren rekryterare som specialiserat dig på Rusta och Matcha-programmet i Sverige.
 Din uppgift är att matcha deltagare med lediga tjänster.
@@ -46,10 +48,9 @@ export function loadSettings(): AppSettings {
   }
 
   return {
-    excelPath: saved.excelPath || '',
-    // Environment variable takes precedence over the settings file
+    excelPath: process.env.EXCEL_PATH || saved.excelPath || '',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || saved.anthropicApiKey || '',
-    rekryterarPrompt: saved.rekryterarPrompt || DEFAULT_PROMPT,
+    rekryterarPrompt: process.env.REKRYTERARE_PROMPT || saved.rekryterarPrompt || DEFAULT_PROMPT,
   }
 }
 

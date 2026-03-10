@@ -11,7 +11,7 @@ export async function GET() {
         { status: 400 }
       )
     }
-    const data = readExcel(settings.excelPath)
+    const data = await readExcel(settings.excelPath)
     return NextResponse.json(data)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Okänt fel'

@@ -2,7 +2,9 @@ import * as fs from 'fs'
 import path from 'path'
 import { Feedback } from './types'
 
-const FEEDBACK_PATH = path.join(process.cwd(), 'data', 'feedback.json')
+const DATA_DIR =
+  process.env.NODE_ENV === 'production' ? '/tmp' : path.join(process.cwd(), 'data')
+const FEEDBACK_PATH = path.join(DATA_DIR, 'feedback.json')
 
 export function loadFeedback(): Feedback[] {
   try {

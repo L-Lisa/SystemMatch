@@ -3,6 +3,19 @@ import * as fs from 'fs'
 import path from 'path'
 import { Kandidat, Jobb, Rekryterare, ExcelData } from './types'
 
+function isUrl(str: string): boolean {
+  return str.startsWith('http://') || str.startsWith('https://')
+}
+
+async function downloadToTmp(url: string): Promise<string> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Kunde inte hämta Excel-filen: HTTP ${res.status}`)
+  const buffer = Buffer.from(await res.arrayBuffer())
+  const tmpPath = path.join('/tmp', 'excel.xlsx')
+  fs.writeFileSync(tmpPath, buffer)
+  return tmpPath
+}
+
 function parseBoolean(val: unknown): boolean {
   if (!val) return false
   const s = String(val).toLowerCase().trim()
@@ -17,7 +30,11 @@ function parseDate(val: unknown): string {
   return String(val)
 }
 
-export function readExcel(filePath: string): ExcelData {
+export async function readExcel(filePathOrUrl: string): Promise<ExcelData> {
+  const filePath = isUrl(filePathOrUrl)
+    ? await downloadToTmp(filePathOrUrl)
+    : filePathOrUrl
+
   if (!fs.existsSync(filePath)) {
     throw new Error(`Excel-filen hittades inte: ${filePath}`)
   }
@@ -107,7 +124,7 @@ export function readExcel(filePath: string): ExcelData {
 }
 
 export function writeKandidatFlags(
-  filePath: string,
+  filePathOrUrl: string,
   rad: number,
   updates: {
     nystartsjobb?: boolean
@@ -118,6 +135,9 @@ export function writeKandidatFlags(
     bransch?: string
   }
 ) {
+  if (isUrl(filePathOrUrl)) return // read-only when Excel is a URL
+
+  const filePath = filePathOrUrl
   if (!fs.existsSync(filePath)) {
     throw new Error(`Excel-filen hittades inte: ${filePath}`)
   }
@@ -149,11 +169,14 @@ export function writeKandidatFlags(
 }
 
 export function writeKandidatCV(
-  filePath: string,
+  filePathOrUrl: string,
   rad: number,
   cvIndex: 1 | 2 | 3,
   url: string
 ) {
+  if (isUrl(filePathOrUrl)) return // read-only when Excel is a URL
+
+  const filePath = filePathOrUrl
   if (!fs.existsSync(filePath)) {
     throw new Error(`Excel-filen hittades inte: ${filePath}`)
   }
