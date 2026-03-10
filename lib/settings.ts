@@ -35,24 +35,21 @@ SVARA med ett JSON-objekt med dessa fält:
 Rangordna alltid kandidaterna från högst till lägst matchning. Inkludera alla kandidater som har NÅGON potential, inte bara de uppenbara matchningarna.`
 
 export function loadSettings(): AppSettings {
+  let saved: Partial<AppSettings> = {}
+
   try {
     if (fs.existsSync(SETTINGS_PATH)) {
-      const data = fs.readFileSync(SETTINGS_PATH, 'utf-8')
-      const saved = JSON.parse(data)
-      return {
-        excelPath: saved.excelPath || '',
-        anthropicApiKey: saved.anthropicApiKey || '',
-        rekryterarPrompt: saved.rekryterarPrompt || DEFAULT_PROMPT,
-      }
+      saved = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'))
     }
   } catch (e) {
     console.error('Kunde inte läsa inställningar:', e)
   }
 
   return {
-    excelPath: '',
-    anthropicApiKey: '',
-    rekryterarPrompt: DEFAULT_PROMPT,
+    excelPath: saved.excelPath || '',
+    // Environment variable takes precedence over the settings file
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY || saved.anthropicApiKey || '',
+    rekryterarPrompt: saved.rekryterarPrompt || DEFAULT_PROMPT,
   }
 }
 
