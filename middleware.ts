@@ -3,7 +3,7 @@ import { COOKIE_NAME, isValidToken } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login']
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
@@ -11,7 +11,7 @@ export function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get(COOKIE_NAME)?.value
-  if (!token || !isValidToken(token)) {
+  if (!token || !(await isValidToken(token))) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 

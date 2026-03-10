@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Fel lösenord' }, { status: 401 })
   }
 
-  const token = makeSessionToken(password)
+  const token = await makeSessionToken(password)
 
   const res = NextResponse.json({ ok: true })
   res.cookies.set(COOKIE_NAME, token, {
