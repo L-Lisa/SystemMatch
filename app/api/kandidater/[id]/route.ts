@@ -1,0 +1,26 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { updateKandidatFlags, updateKandidatCV } from '@/lib/db/kandidater'
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await req.json()
+    const { type, ...updates } = body
+
+    if (type === 'flags') {
+      await updateKandidatFlags(id, updates)
+    } else if (type === 'cv') {
+      await updateKandidatCV(id, updates.cvIndex, updates.url)
+    } else {
+      return NextResponse.json({ error: 'Okänd uppdateringstyp' }, { status: 400 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Okänt fel'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}

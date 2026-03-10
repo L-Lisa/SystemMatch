@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { loadSettings, saveSettings } from '@/lib/settings'
-import { loadFeedback } from '@/lib/feedback'
+import { loadSettings } from '@/lib/settings'
+import { getAllFeedback } from '@/lib/db/feedback'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Anthropic API-nyckel saknas' }, { status: 400 })
     }
 
-    const allFeedback = loadFeedback()
+    const allFeedback = await getAllFeedback()
     if (allFeedback.length === 0) {
       return NextResponse.json(
         { error: 'Ingen feedback att analysera ännu' },
@@ -55,7 +55,8 @@ Svara med JSON: { "forbattradPrompt": "...", "vad_andrades": ["punkt 1", "punkt 
     const responseText =
       response.content[0].type === 'text' ? response.content[0].text : ''
 
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    const clean = responseText.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
+    const jsonMatch = clean.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Inget JSON-svar från Claude')
     const parsed = JSON.parse(jsonMatch[0])
 

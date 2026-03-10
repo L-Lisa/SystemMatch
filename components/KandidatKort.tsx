@@ -6,8 +6,8 @@ import Flagga from './Flagga'
 
 interface KandidatKortProps {
   kandidat: Kandidat
-  onFlagToggle: (rad: number, flag: string, value: boolean) => void
-  onCVUpdate: (rad: number, cvIndex: 1 | 2 | 3, url: string) => void
+  onFlagToggle: (id: string, flag: string, value: boolean) => void
+  onCVUpdate: (id: string, cvIndex: 1 | 2 | 3, url: string) => void
 }
 
 export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: KandidatKortProps) {
@@ -36,7 +36,7 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
       const data = await res.json()
       if (data.success) {
         setCvStatus((s) => ({ ...s, [idx]: 'ok' }))
-        onCVUpdate(kandidat.rad, idx, url)
+        onCVUpdate(kandidat.id, idx, url)
         setEditingCV(null)
         setCvInput('')
       } else {
@@ -70,19 +70,19 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
           label="Körkort"
           active={kandidat.korkort}
           color="green"
-          onClick={() => onFlagToggle(kandidat.rad, 'korkort', !kandidat.korkort)}
+          onClick={() => onFlagToggle(kandidat.id, 'korkort', !kandidat.korkort)}
         />
         <Flagga
           label="Nystartsjobb"
           active={kandidat.nystartsjobb}
           color="blue"
-          onClick={() => onFlagToggle(kandidat.rad, 'nystartsjobb', !kandidat.nystartsjobb)}
+          onClick={() => onFlagToggle(kandidat.id, 'nystartsjobb', !kandidat.nystartsjobb)}
         />
         <Flagga
           label="Introduktionsjobb"
           active={kandidat.introduktionsjobb}
           color="purple"
-          onClick={() => onFlagToggle(kandidat.rad, 'introduktionsjobb', !kandidat.introduktionsjobb)}
+          onClick={() => onFlagToggle(kandidat.id, 'introduktionsjobb', !kandidat.introduktionsjobb)}
         />
         {kandidat.loneansprak && (
           <Flagga
@@ -97,13 +97,13 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
           label="Städ"
           active={kandidat.stadsFlag}
           color="teal"
-          onClick={() => onFlagToggle(kandidat.rad, 'stadsFlag', !kandidat.stadsFlag)}
+          onClick={() => onFlagToggle(kandidat.id, 'stadsFlag', !kandidat.stadsFlag)}
         />
         <Flagga
           label="Restaurang"
           active={kandidat.restaurangFlag}
           color="rose"
-          onClick={() => onFlagToggle(kandidat.rad, 'restaurangFlag', !kandidat.restaurangFlag)}
+          onClick={() => onFlagToggle(kandidat.id, 'restaurangFlag', !kandidat.restaurangFlag)}
         />
       </div>
 

@@ -30,7 +30,7 @@ export default function KandidaterPage() {
     fetchData()
   }, [fetchData])
 
-  async function handleFlagToggle(rad: number, flag: string, value: boolean) {
+  async function handleFlagToggle(id: string, flag: string, value: boolean) {
     if (!data) return
 
     // Optimistic update
@@ -39,10 +39,9 @@ export default function KandidaterPage() {
       return {
         ...prev,
         kandidater: prev.kandidater.map((k) => {
-          if (k.rad !== rad) return k
+          if (k.id !== id) return k
           const updated = { ...k, [flag]: value }
 
-          // Update bransch string for städ/restaurang
           if (flag === 'stadsFlag' || flag === 'restaurangFlag') {
             let bransch = k.bransch
             if (flag === 'stadsFlag') {
@@ -66,11 +65,10 @@ export default function KandidaterPage() {
       }
     })
 
-    // Persist to Excel
     try {
-      const body: Record<string, unknown> = { rad, type: 'flags' }
+      const body: Record<string, unknown> = { type: 'flags' }
       if (flag === 'stadsFlag' || flag === 'restaurangFlag') {
-        const kandidat = data.kandidater.find((k) => k.rad === rad)
+        const kandidat = data.kandidater.find((k) => k.id === id)
         if (kandidat) {
           let bransch = kandidat.bransch
           if (flag === 'stadsFlag') {
@@ -88,12 +86,14 @@ export default function KandidaterPage() {
             }
           }
           body.bransch = bransch
+          body.stads_flag = flag === 'stadsFlag' ? value : kandidat.stadsFlag
+          body.restaurang_flag = flag === 'restaurangFlag' ? value : kandidat.restaurangFlag
         }
       } else {
-        body[flag] = value
+        body[flag === 'korkort' ? 'korkort' : flag === 'nystartsjobb' ? 'nystartsjobb' : flag === 'introduktionsjobb' ? 'introduktionsjobb' : flag] = value
       }
 
-      await fetch('/api/excel', {
+      await fetch(`/api/kandidater/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -103,16 +103,15 @@ export default function KandidaterPage() {
     }
   }
 
-  async function handleCVUpdate(rad: number, cvIndex: 1 | 2 | 3, url: string) {
+  async function handleCVUpdate(id: string, cvIndex: 1 | 2 | 3, url: string) {
     if (!data) return
 
-    // Optimistic update
     setData((prev) => {
       if (!prev) return prev
       return {
         ...prev,
         kandidater: prev.kandidater.map((k) => {
-          if (k.rad !== rad) return k
+          if (k.id !== id) return k
           const cvKey = `cv${cvIndex}` as 'cv1' | 'cv2' | 'cv3'
           return { ...k, [cvKey]: url }
         }),
@@ -120,10 +119,10 @@ export default function KandidaterPage() {
     })
 
     try {
-      await fetch('/api/excel', {
+      await fetch(`/api/kandidater/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rad, type: 'cv', cvIndex, url }),
+        body: JSON.stringify({ type: 'cv', cvIndex, url }),
       })
     } catch (e) {
       console.error('Kunde inte spara CV-länk:', e)

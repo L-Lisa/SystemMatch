@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { readCV } from '@/lib/cv-reader'
 import { loadSettings } from '@/lib/settings'
-import { loadFeedback, buildFeedbackContext } from '@/lib/feedback'
+import { getAllFeedback, buildFeedbackContext } from '@/lib/db/feedback'
 import { Kandidat, Jobb } from '@/lib/types'
 
 export async function POST(req: NextRequest) {
@@ -60,7 +60,7 @@ ${flags.length > 0 ? `Flaggor: ${flags.join(' | ')}` : ''}
 ${k.cvText ? `CV:\n${k.cvText.slice(0, 3000)}` : '[INGET CV UPPLADDAT - matcha enbart på bransch och flaggor]'}`
     })
 
-    const allFeedback = loadFeedback()
+    const allFeedback = await getAllFeedback()
     const feedbackContext = buildFeedbackContext(jobb.id, allFeedback)
 
     const userMessage = `Tjänst att matcha mot:
@@ -92,7 +92,8 @@ ${kandidatSummaries.join('\n\n')}`
     // Parse JSON from response
     let matchningar
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      const clean = responseText.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
+      const jsonMatch = clean.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('Inget JSON-svar från Claude')
       const parsed = JSON.parse(jsonMatch[0])
       matchningar = parsed.matchningar

@@ -33,6 +33,9 @@ export default function InstallningarPage() {
   } | null>(null)
   const [improveError, setImproveError] = useState<string | null>(null)
   const [showPromptDiff, setShowPromptDiff] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<string | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -84,6 +87,22 @@ export default function InstallningarPage() {
     }
   }
 
+  async function handleImport() {
+    setImporting(true)
+    setImportResult(null)
+    setImportError(null)
+    try {
+      const res = await fetch('/api/import', { method: 'POST' })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      setImportResult(`✓ Importerade ${json.kandidater} kandidater och ${json.jobb} jobb`)
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Okänt fel')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   function applyImprovedPrompt() {
     if (!improveResult) return
     setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt }))
@@ -109,6 +128,23 @@ export default function InstallningarPage() {
           placeholder="/Users/lisa/Downloads/matchApp2.xlsx"
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-400"
         />
+      </section>
+
+      {/* Import */}
+      <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
+        <h2 className="font-semibold text-gray-800 mb-1">Importera från Excel</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Läser in kandidater och jobb från Excel-filen och synkar med databasen. Befintliga CV-länkar och flaggor bevaras.
+        </p>
+        <button
+          onClick={handleImport}
+          disabled={importing}
+          className="bg-indigo-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+        >
+          {importing ? 'Importerar...' : '↑ Importera från Excel'}
+        </button>
+        {importResult && <p className="text-sm text-green-600 mt-2">{importResult}</p>}
+        {importError && <p className="text-sm text-red-500 mt-2">⚠ {importError}</p>}
       </section>
 
       {/* API Key */}
