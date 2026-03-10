@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Kandidat, Jobb, Feedback } from '@/lib/types'
+import { Kandidat, Jobb } from '@/lib/types'
 
 interface FeedbackModalProps {
   jobb: Jobb

@@ -14,7 +14,6 @@ export interface Kandidat {
   stadsFlag: boolean
   restaurangFlag: boolean
   keywords: string[]
-  cvTextCache?: { [url: string]: string }
   rad: number // Excel row index
 }
 
@@ -34,16 +33,6 @@ export interface Jobb {
 export interface Rekryterare {
   namn: string
   jobb: Jobb[]
-}
-
-export interface Matchning {
-  kandidatId: string
-  kandidatNamn: string
-  jobbId: string
-  score: number
-  motivering: string
-  vinkel: string
-  timestamp: string
 }
 
 export interface Feedback {

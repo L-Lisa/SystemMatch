@@ -146,8 +146,6 @@ export function writeKandidatFlags(
   const sheet = workbook.Sheets['Blad1']
 
   // Columns: D=3=nystartsjobb, F=5=körkort, G=6=introduktionsjobb, B=1=bransch
-  const excelRow = rad + 1 // XLSX is 1-indexed
-
   if (updates.nystartsjobb !== undefined) {
     const cell = XLSX.utils.encode_cell({ r: rad, c: 3 })
     sheet[cell] = { t: 's', v: updates.nystartsjobb ? 'ja' : 'nej' }

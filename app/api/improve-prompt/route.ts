@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { loadSettings } from '@/lib/settings'
 import { getAllFeedback } from '@/lib/db/feedback'
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const settings = loadSettings()
     if (!settings.anthropicApiKey) {
