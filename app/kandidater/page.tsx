@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Kandidat, ExcelData } from '@/lib/types'
+import { friendlyError } from '@/lib/error'
 import KandidatKort from '@/components/KandidatKort'
 
 export default function KandidaterPage() {
@@ -11,6 +12,8 @@ export default function KandidaterPage() {
   const [syncing, setSyncing] = useState(false)
   const [search, setSearch] = useState('')
   const [flagFilter, setFlagFilter] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 24
 
   const fetchData = useCallback(async () => {
     setError(null)
@@ -30,6 +33,10 @@ export default function KandidaterPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  useEffect(() => {
+    setPage(0)
+  }, [search, flagFilter])
 
   async function handleFlagToggle(id: string, flag: string, value: boolean) {
     if (!data) return
@@ -225,7 +232,7 @@ export default function KandidaterPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 mb-6">
           <p className="font-medium">Kunde inte ladda data</p>
-          <p className="text-sm mt-1">{error}</p>
+          <p className="text-sm mt-1">{friendlyError(error)}</p>
           {error.includes('sökväg') && (
             <a href="/installningar" className="text-sm text-indigo-600 underline mt-2 block">
               Gå till Inställningar för att konfigurera Excel-sökväg
@@ -234,17 +241,41 @@ export default function KandidaterPage() {
         </div>
       )}
 
-      {filtered && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((k) => (
-            <KandidatKort
-              key={k.id}
-              kandidat={k}
-              onFlagToggle={handleFlagToggle}
-              onCVUpdate={handleCVUpdate}
-            />
-          ))}
-        </div>
+      {filtered && filtered.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((k) => (
+              <KandidatKort
+                key={k.id}
+                kandidat={k}
+                onFlagToggle={handleFlagToggle}
+                onCVUpdate={handleCVUpdate}
+              />
+            ))}
+          </div>
+
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between mt-6 text-sm text-gray-500">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-40 transition-colors"
+              >
+                ← Föregående
+              </button>
+              <span>
+                {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} av {filtered.length}
+              </span>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={(page + 1) * PAGE_SIZE >= filtered.length}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-40 transition-colors"
+              >
+                Nästa →
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {filtered && filtered.length === 0 && !loading && (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ExcelData, Jobb, Kandidat, MatchResult } from '@/lib/types'
+import { friendlyError } from '@/lib/error'
 import Flagga from '@/components/Flagga'
 import FeedbackModal from '@/components/FeedbackModal'
 
@@ -352,7 +353,7 @@ export default function RekryterarePage() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 mb-6">
           <p className="font-medium">Fel</p>
-          <p className="text-sm mt-1">{error}</p>
+          <p className="text-sm mt-1">{friendlyError(error)}</p>
           {error.includes('sökväg') && (
             <a href="/installningar" className="text-sm text-indigo-600 underline mt-2 block">
               Gå till Inställningar
@@ -363,7 +364,7 @@ export default function RekryterarePage() {
 
       {matchError && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm">
-          ⚠ {matchError}
+          ⚠ {friendlyError(matchError)}
         </div>
       )}
 

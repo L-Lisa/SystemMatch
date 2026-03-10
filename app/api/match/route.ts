@@ -17,6 +17,16 @@ export async function POST(req: NextRequest) {
 
     const { jobb, kandidater }: { jobb: Jobb; kandidater: Kandidat[] } = await req.json()
 
+    if (!Array.isArray(kandidater) || kandidater.length === 0) {
+      return NextResponse.json({ error: 'Inga kandidater att matcha' }, { status: 400 })
+    }
+    if (kandidater.length > 60) {
+      return NextResponse.json(
+        { error: `För många kandidater (${kandidater.length}). Filtrera ned till max 60 och försök igen.` },
+        { status: 400 }
+      )
+    }
+
     const client = new Anthropic({ apiKey: settings.anthropicApiKey })
 
     // Read CVs for all candidates
