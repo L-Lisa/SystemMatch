@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 
 interface Settings {
-  excelPath: string
   rekryterarPrompt: string
 }
 
@@ -19,7 +18,6 @@ interface FeedbackItem {
 
 export default function InstallningarPage() {
   const [settings, setSettings] = useState<Settings>({
-    excelPath: '',
     rekryterarPrompt: '',
   })
   const [saving, setSaving] = useState(false)
@@ -91,12 +89,18 @@ export default function InstallningarPage() {
     }
   }
 
-  async function handleImport() {
+  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
     setImporting(true)
     setImportResult(null)
     setImportError(null)
+
     try {
-      const res = await fetch('/api/import', { method: 'POST' })
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/import', { method: 'POST', body: form })
       const json = await res.json()
       if (json.error) throw new Error(json.error)
       setImportResult(`✓ Importerade ${json.kandidater} kandidater och ${json.jobb} jobb`)
@@ -104,6 +108,8 @@ export default function InstallningarPage() {
       setImportError(e instanceof Error ? e.message : 'Okänt fel')
     } finally {
       setImporting(false)
+      // Reset input so same file can be re-uploaded
+      e.target.value = ''
     }
   }
 
@@ -126,35 +132,22 @@ export default function InstallningarPage() {
     <div className="max-w-3xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Inställningar</h1>
 
-      {/* Excel Path */}
-      <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
-        <h2 className="font-semibold text-gray-800 mb-3">Excel-fil</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Ange den fullständiga sökvägen till din Excel-fil. Ex:{' '}
-          <code className="bg-gray-100 px-1 rounded text-xs">/Users/lisa/Downloads/matchApp2.xlsx</code>
-        </p>
-        <input
-          type="text"
-          value={settings.excelPath}
-          onChange={(e) => setSettings((s) => ({ ...s, excelPath: e.target.value }))}
-          placeholder="/Users/lisa/Downloads/matchApp2.xlsx"
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-400"
-        />
-      </section>
-
-      {/* Import */}
+      {/* Excel Import */}
       <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
         <h2 className="font-semibold text-gray-800 mb-1">Importera från Excel</h2>
         <p className="text-sm text-gray-500 mb-3">
-          Läser in kandidater och jobb från Excel-filen och synkar med databasen. Befintliga CV-länkar och flaggor bevaras.
+          Ladda upp din Excel-fil (.xlsx) för att synka kandidater och jobb med databasen. Befintliga CV-länkar och flaggor bevaras.
         </p>
-        <button
-          onClick={handleImport}
-          disabled={importing}
-          className="bg-indigo-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-        >
-          {importing ? 'Importerar...' : '↑ Importera från Excel'}
-        </button>
+        <label className={`inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+          {importing ? 'Importerar...' : '↑ Välj Excel-fil'}
+          <input
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            disabled={importing}
+            onChange={handleFileImport}
+          />
+        </label>
         {importResult && <p className="text-sm text-green-600 mt-2">{importResult}</p>}
         {importError && <p className="text-sm text-red-500 mt-2">⚠ {importError}</p>}
       </section>

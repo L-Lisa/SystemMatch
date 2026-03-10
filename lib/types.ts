@@ -55,7 +55,6 @@ export interface Feedback {
 }
 
 export interface AppSettings {
-  excelPath: string
   anthropicApiKey: string
   rekryterarPrompt: string
 }

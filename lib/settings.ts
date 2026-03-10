@@ -48,7 +48,6 @@ export function loadSettings(): AppSettings {
   }
 
   return {
-    excelPath: process.env.EXCEL_PATH || saved.excelPath || '',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || saved.anthropicApiKey || '',
     rekryterarPrompt: process.env.REKRYTERARE_PROMPT || saved.rekryterarPrompt || DEFAULT_PROMPT,
   }
