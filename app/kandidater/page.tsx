@@ -249,7 +249,16 @@ export default function KandidaterPage() {
 
       {filtered && filtered.length === 0 && !loading && (
         <div className="text-center py-16 text-gray-400">
-          Inga kandidater matchade sökningen
+          {data?.kandidater.length === 0 ? (
+            <>
+              <p>Inga kandidater importerade ännu.</p>
+              <a href="/installningar" className="text-sm text-indigo-500 hover:text-indigo-700 underline mt-2 block">
+                Gå till Inställningar för att importera Excel
+              </a>
+            </>
+          ) : (
+            'Inga kandidater matchade sökningen'
+          )}
         </div>
       )}
     </div>

@@ -110,21 +110,31 @@ function JobbKort({
           <p className="text-sm text-gray-500">{jobb.arbetsgivare}</p>
           {jobb.plats && <p className="text-xs text-gray-400">{jobb.plats}</p>}
         </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={() => onFeedback(jobb)}
-            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 border border-gray-200 rounded"
-            title="Lämna feedback"
-          >
-            Feedback
-          </button>
-          <button
-            onClick={() => onMatch(jobb)}
-            disabled={matching}
-            className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-          >
-            {matching ? 'Matchar...' : 'Matcha'}
-          </button>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex gap-2">
+            <button
+              onClick={() => onFeedback(jobb)}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 border border-gray-200 rounded"
+              title="Lämna feedback"
+            >
+              Feedback
+            </button>
+            <button
+              onClick={() => onMatch(jobb)}
+              disabled={matching}
+              className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {matching ? 'Matchar...' : 'Matcha'}
+            </button>
+          </div>
+          {(() => {
+            const withCV = kandidater.filter((k) => k.cv1 || k.cv2 || k.cv3).length
+            return (
+              <span className={`text-xs ${withCV === 0 ? 'text-amber-500' : 'text-gray-400'}`}>
+                {withCV}/{kandidater.length} med CV
+              </span>
+            )
+          })()}
         </div>
       </div>
 
@@ -193,6 +203,11 @@ function JobbKort({
           >
             {expanded ? '▲' : '▼'} {matchResults.length} matchade kandidater
           </button>
+          <div className="flex gap-3 mt-1">
+            <span className="text-xs text-green-600">● Stark 70%+</span>
+            <span className="text-xs text-amber-600">● Ok 40–69%</span>
+            <span className="text-xs text-gray-400">● Lägre &lt;40%</span>
+          </div>
           {expanded && (
             <div className="mt-2 space-y-2">
               {matchResults.map((m, i) => {
