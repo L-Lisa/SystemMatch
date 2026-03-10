@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { loadSettings } from '@/lib/settings'
+import { getDbPrompt } from '@/lib/db/settings'
 import { getAllFeedback } from '@/lib/db/feedback'
 
 export async function POST() {
@@ -10,7 +11,8 @@ export async function POST() {
       return NextResponse.json({ error: 'Anthropic API-nyckel saknas' }, { status: 400 })
     }
 
-    const allFeedback = await getAllFeedback()
+    const [allFeedback, dbPrompt] = await Promise.all([getAllFeedback(), getDbPrompt()])
+    const currentPrompt = dbPrompt || settings.rekryterarPrompt
     if (allFeedback.length === 0) {
       return NextResponse.json(
         { error: 'Ingen feedback att analysera ännu' },
@@ -21,7 +23,7 @@ export async function POST() {
     const client = new Anthropic({ apiKey: settings.anthropicApiKey })
 
     const feedbackText = allFeedback
-      .slice(-30) // last 30
+      .slice(0, 30) // newest 30 (getAllFeedback returns DESC)
       .map(
         (f) =>
           `[${f.typ}] ${f.kandidatNamn} / ${f.jobbTitel}${f.resultat ? ` (${f.resultat})` : ''}: ${f.kommentar}`
@@ -37,7 +39,7 @@ export async function POST() {
           content: `Du hjälper en jobbcoach att förbättra sin matchnings-prompt för ett Rusta och Matcha-program.
 
 NUVARANDE PROMPT:
-${settings.rekryterarPrompt}
+${currentPrompt}
 
 INSAMLAD FEEDBACK (de senaste matchningarna):
 ${feedbackText}

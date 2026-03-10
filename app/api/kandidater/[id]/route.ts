@@ -11,7 +11,11 @@ export async function PATCH(
     const { type, ...updates } = body
 
     if (type === 'flags') {
-      await updateKandidatFlags(id, updates)
+      const ALLOWED_FLAGS = ['nystartsjobb', 'korkort', 'introduktionsjobb', 'stads_flag', 'restaurang_flag', 'bransch']
+      const safe = Object.fromEntries(
+        Object.entries(updates).filter(([k]) => ALLOWED_FLAGS.includes(k))
+      )
+      await updateKandidatFlags(id, safe)
     } else if (type === 'cv') {
       await updateKandidatCV(id, updates.cvIndex, updates.url)
     } else {

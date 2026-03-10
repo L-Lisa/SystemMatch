@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { readCV } from '@/lib/cv-reader'
 import { loadSettings } from '@/lib/settings'
+import { getDbPrompt } from '@/lib/db/settings'
 import { getAllFeedback, buildFeedbackContext } from '@/lib/db/feedback'
 import { Kandidat, Jobb } from '@/lib/types'
 
@@ -70,8 +71,9 @@ ${flags.length > 0 ? `Flaggor: ${flags.join(' | ')}` : ''}
 ${k.cvText ? `CV:\n${k.cvText.slice(0, 3000)}` : '[INGET CV UPPLADDAT - matcha enbart på bransch och flaggor]'}`
     })
 
-    const allFeedback = await getAllFeedback()
+    const [allFeedback, dbPrompt] = await Promise.all([getAllFeedback(), getDbPrompt()])
     const feedbackContext = buildFeedbackContext(jobb.id, allFeedback)
+    const prompt = dbPrompt || settings.rekryterarPrompt
 
     const userMessage = `Tjänst att matcha mot:
 Titel: ${jobb.tjänst}
@@ -91,7 +93,7 @@ ${kandidatSummaries.join('\n\n')}`
       messages: [
         {
           role: 'user',
-          content: settings.rekryterarPrompt + '\n\n' + userMessage,
+          content: prompt + '\n\n' + userMessage,
         },
       ],
     })
