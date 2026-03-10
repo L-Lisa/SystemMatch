@@ -10,6 +10,7 @@ export default function KandidaterPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [search, setSearch] = useState('')
+  const [flagFilter, setFlagFilter] = useState<Set<string>>(new Set())
 
   const fetchData = useCallback(async () => {
     setError(null)
@@ -129,14 +130,36 @@ export default function KandidaterPage() {
     }
   }
 
+  function toggleFlag(flag: string) {
+    setFlagFilter((prev) => {
+      const next = new Set(prev)
+      if (next.has(flag)) next.delete(flag)
+      else next.add(flag)
+      return next
+    })
+  }
+
+  const FLAG_CHIPS = [
+    { key: 'korkort', label: 'Körkort' },
+    { key: 'nystartsjobb', label: 'Nystartsjobb' },
+    { key: 'introduktionsjobb', label: 'Introduktionsjobb' },
+    { key: 'stadsFlag', label: 'Städ' },
+    { key: 'restaurangFlag', label: 'Restaurang' },
+  ]
+
   const filtered = data?.kandidater.filter((k) => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return (
-      k.namn.toLowerCase().includes(q) ||
-      k.bransch.toLowerCase().includes(q) ||
-      k.merBransch.toLowerCase().includes(q)
-    )
+    if (search) {
+      const q = search.toLowerCase()
+      const matchText =
+        k.namn.toLowerCase().includes(q) ||
+        k.bransch.toLowerCase().includes(q) ||
+        k.merBransch.toLowerCase().includes(q)
+      if (!matchText) return false
+    }
+    for (const flag of flagFilter) {
+      if (!k[flag as keyof Kandidat]) return false
+    }
+    return true
   })
 
   return (
@@ -164,6 +187,34 @@ export default function KandidaterPage() {
             {syncing ? 'Synkar...' : '↻ Synka Excel'}
           </button>
         </div>
+      </div>
+
+      {/* Flag filters */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {FLAG_CHIPS.map(({ key, label }) => {
+          const active = flagFilter.has(key)
+          return (
+            <button
+              key={key}
+              onClick={() => toggleFlag(key)}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                active
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+        {flagFilter.size > 0 && (
+          <button
+            onClick={() => setFlagFilter(new Set())}
+            className="text-xs px-3 py-1 rounded-full text-gray-400 hover:text-gray-600"
+          >
+            Rensa filter
+          </button>
+        )}
       </div>
 
       {loading && (
