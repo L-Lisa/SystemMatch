@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 
 interface Settings {
   excelPath: string
-  anthropicApiKey: string
   rekryterarPrompt: string
 }
 
@@ -21,7 +20,6 @@ interface FeedbackItem {
 export default function InstallningarPage() {
   const [settings, setSettings] = useState<Settings>({
     excelPath: '',
-    anthropicApiKey: '',
     rekryterarPrompt: '',
   })
   const [saving, setSaving] = useState(false)
@@ -114,19 +112,13 @@ export default function InstallningarPage() {
       </section>
 
       {/* API Key */}
-      <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
-        <h2 className="font-semibold text-gray-800 mb-3">Anthropic API-nyckel</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Krävs för AI-matchning. Hämta din nyckel på{' '}
-          <span className="text-indigo-600">console.anthropic.com</span>
+      <section className="bg-gray-50 rounded-xl border border-gray-100 p-5 mb-4">
+        <h2 className="font-semibold text-gray-700 mb-1">Anthropic API-nyckel</h2>
+        <p className="text-sm text-gray-500">
+          Hanteras via miljövariabel <code className="bg-gray-100 px-1 rounded text-xs">ANTHROPIC_API_KEY</code> i{' '}
+          <code className="bg-gray-100 px-1 rounded text-xs">.env.local</code> eller Vercel-inställningar.
+          Läggs aldrig i webbläsaren.
         </p>
-        <input
-          type="password"
-          value={settings.anthropicApiKey}
-          onChange={(e) => setSettings((s) => ({ ...s, anthropicApiKey: e.target.value }))}
-          placeholder="sk-ant-..."
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-400"
-        />
       </section>
 
       {/* Recruiter Prompt */}
