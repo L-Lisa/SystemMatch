@@ -1,10 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-// Env vars are only available at runtime on Vercel, not at build time.
-// createClient with empty strings is safe — requests will fail with a clear
-// Supabase error if vars are genuinely missing in production.
-const url = process.env.SUPABASE_URL ?? ''
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+// Lazy singleton — createClient must not run at module evaluation time because
+// Next.js evaluates route modules during build when env vars are not yet available.
+let _client: SupabaseClient | null = null
 
-// Server-side client with full access — never expose to browser
-export const supabase = createClient(url, serviceKey)
+export function getSupabase(): SupabaseClient {
+  if (!_client) {
+    const url = process.env.SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !serviceKey) {
+      throw new Error('SUPABASE_URL och SUPABASE_SERVICE_ROLE_KEY måste vara satta')
+    }
+    // Server-side client with full access — never expose to browser
+    _client = createClient(url, serviceKey)
+  }
+  return _client
+}

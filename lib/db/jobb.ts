@@ -1,8 +1,8 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { Rekryterare, Jobb } from '@/lib/types'
 
 export async function getAllRekryterare(): Promise<Rekryterare[]> {
-  const { data: rekryterare, error } = await supabase
+  const { data: rekryterare, error } = await getSupabase()
     .from('rekryterare')
     .select('id, namn, slug, jobb(*)')
     .order('namn')
@@ -19,7 +19,9 @@ export async function upsertJobb(
   jobbLista: Omit<Jobb, 'id'>[],
   rekryterareSlug: string
 ): Promise<void> {
-  const { data: rek } = await supabase
+  const db = getSupabase()
+
+  const { data: rek } = await db
     .from('rekryterare')
     .select('id')
     .eq('slug', rekryterareSlug)
@@ -28,11 +30,11 @@ export async function upsertJobb(
   if (!rek) throw new Error(`Rekryterare "${rekryterareSlug}" finns inte`)
 
   // Replace all jobs for this recruiter
-  await supabase.from('jobb').delete().eq('rekryterare_id', rek.id)
+  await db.from('jobb').delete().eq('rekryterare_id', rek.id)
 
   if (jobbLista.length === 0) return
 
-  await supabase.from('jobb').insert(
+  await db.from('jobb').insert(
     jobbLista.map((j) => ({
       rekryterare_id: rek.id,
       tjänst: j.tjänst,
@@ -49,7 +51,7 @@ export async function upsertJobb(
 }
 
 export async function updateJobbPresenterad(jobbId: string, presenterad: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('jobb')
     .update({ presenterad })
     .eq('id', jobbId)

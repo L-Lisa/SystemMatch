@@ -1,8 +1,8 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { Kandidat } from '@/lib/types'
 
 export async function getAllKandidater(): Promise<Kandidat[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('kandidater')
     .select('*')
     .eq('aktiv', true)
@@ -24,7 +24,7 @@ export async function updateKandidatFlags(
     bransch: string
   }>
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('kandidater')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -37,7 +37,7 @@ export async function updateKandidatCV(
   cvIndex: 1 | 2 | 3,
   url: string
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('kandidater')
     .update({ [`cv${cvIndex}`]: url, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -46,8 +46,10 @@ export async function updateKandidatCV(
 }
 
 export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<void> {
+  const db = getSupabase()
+
   for (const k of rows) {
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('kandidater')
       .select('id, cv1, cv2, cv3, stads_flag, restaurang_flag')
       .ilike('namn', k.namn.trim())
@@ -56,7 +58,7 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
     if (existing) {
       // Excel owns: bransch, merBransch, slutdatum, loneansprak, boolean flags
       // App owns: cv1/2/3, stads_flag, restaurang_flag — never overwritten by import
-      await supabase
+      await db
         .from('kandidater')
         .update({
           bransch: k.bransch,
@@ -73,8 +75,7 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
         })
         .eq('id', existing.id)
     } else {
-      // New candidate — no CVs yet, uploaded via app
-      await supabase.from('kandidater').insert({
+      await db.from('kandidater').insert({
         namn: k.namn,
         bransch: k.bransch,
         mer_bransch: k.merBransch,
@@ -97,11 +98,11 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
 
   // Mark candidates no longer in Excel as inactive
   const names = rows.map((k) => k.namn.trim().toLowerCase())
-  const { data: all } = await supabase.from('kandidater').select('id, namn')
+  const { data: all } = await db.from('kandidater').select('id, namn')
   if (all) {
     const toDeactivate = all.filter((k) => !names.includes(k.namn.toLowerCase()))
     for (const k of toDeactivate) {
-      await supabase.from('kandidater').update({ aktiv: false }).eq('id', k.id)
+      await db.from('kandidater').update({ aktiv: false }).eq('id', k.id)
     }
   }
 }

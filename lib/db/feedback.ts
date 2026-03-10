@@ -1,8 +1,8 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { Feedback } from '@/lib/types'
 
 export async function getAllFeedback(): Promise<Feedback[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('feedback')
     .select('*')
     .order('created_at', { ascending: false })
@@ -15,7 +15,7 @@ export async function getAllFeedback(): Promise<Feedback[]> {
 export async function addFeedback(
   input: Omit<Feedback, 'id' | 'timestamp'>
 ): Promise<Feedback> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('feedback')
     .insert({
       kandidat_id: input.kandidatId || null,

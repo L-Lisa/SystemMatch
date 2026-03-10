@@ -1,7 +1,7 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 
 export async function getDbPrompt(): Promise<string | null> {
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('app_settings')
     .select('value')
     .eq('key', 'rekryterarPrompt')
@@ -11,7 +11,7 @@ export async function getDbPrompt(): Promise<string | null> {
 }
 
 export async function saveDbPrompt(prompt: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('app_settings')
     .upsert({ key: 'rekryterarPrompt', value: prompt, updated_at: new Date().toISOString() })
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { updateKandidatCV } from '@/lib/db/kandidater'
 
 export async function POST(
@@ -24,9 +24,9 @@ export async function POST(
     const buffer = Buffer.from(await file.arrayBuffer())
 
     // Remove old file at this slot if it exists
-    await supabase.storage.from('cvs').remove([`${id}/cv-${cvIndex}.pdf`, `${id}/cv-${cvIndex}.docx`, `${id}/cv-${cvIndex}.doc`])
+    await getSupabase().storage.from('cvs').remove([`${id}/cv-${cvIndex}.pdf`, `${id}/cv-${cvIndex}.docx`, `${id}/cv-${cvIndex}.doc`])
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await getSupabase().storage
       .from('cvs')
       .upload(path, buffer, {
         contentType: file.type,
@@ -36,7 +36,7 @@ export async function POST(
     if (uploadError) throw new Error(`Uppladdning misslyckades: ${uploadError.message}`)
 
     // Generate a long-lived signed URL (10 years)
-    const { data: signed, error: signError } = await supabase.storage
+    const { data: signed, error: signError } = await getSupabase().storage
       .from('cvs')
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10)
 
@@ -60,7 +60,7 @@ export async function DELETE(
     const { cvIndex } = await req.json()
 
     // Remove all possible extensions
-    await supabase.storage.from('cvs').remove([
+    await getSupabase().storage.from('cvs').remove([
       `${id}/cv-${cvIndex}.pdf`,
       `${id}/cv-${cvIndex}.docx`,
       `${id}/cv-${cvIndex}.doc`,
