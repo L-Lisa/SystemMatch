@@ -10,7 +10,14 @@ interface KandidatKortProps {
   onCVUpdate: (id: string, cvIndex: 1 | 2 | 3, url: string) => void
 }
 
+function isExpired(slutdatum: string | undefined | null): boolean {
+  if (!slutdatum) return false
+  const d = new Date(slutdatum)
+  return !isNaN(d.getTime()) && d < new Date()
+}
+
 export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: KandidatKortProps) {
+  const expired = isExpired(kandidat.slutdatum)
   const [expanded, setExpanded] = useState(false)
   const [uploadingCV, setUploadingCV] = useState<1 | 2 | 3 | null>(null)
   const [cvStatus, setCvStatus] = useState<Record<number, 'idle' | 'uploading' | 'ok' | 'error'>>({})
@@ -71,16 +78,16 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-xl shadow-sm border p-4 transition-shadow ${expired ? 'border-gray-200 opacity-50' : 'border-gray-100 hover:shadow-md'}`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="font-semibold text-gray-900 text-base">{kandidat.namn}</h3>
+          <h3 className={`font-semibold text-base ${expired ? 'text-gray-400' : 'text-gray-900'}`}>{kandidat.namn}</h3>
           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{kandidat.bransch}</p>
         </div>
         {kandidat.slutdatum && (
-          <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
-            t.o.m. {kandidat.slutdatum}
+          <span className={`text-xs whitespace-nowrap ml-2 ${expired ? 'text-red-400 font-medium' : 'text-gray-400'}`}>
+            {expired ? 'Utgången' : `t.o.m. ${kandidat.slutdatum}`}
           </span>
         )}
       </div>

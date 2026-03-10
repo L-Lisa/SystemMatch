@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ExcelData, Jobb, Kandidat } from '@/lib/types'
 import Flagga from '@/components/Flagga'
@@ -65,6 +65,10 @@ function JobbKort({
   onFeedback: (jobb: Jobb) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    if (matchResults && matchResults.length > 0) setExpanded(true)
+  }, [matchResults])
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
