@@ -54,48 +54,48 @@ export async function readExcel(filePathOrUrl: string): Promise<ExcelData> {
   const jobbNikola: Jobb[] = []
 
   // Row 0 = headers, data starts at row 1
+  // Two separate passes: candidates and jobs can appear on independent rows
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i]
-    if (!row || !row[0]) continue // skip empty kandidat rows
+    if (!row) continue
 
+    // Candidates: column A must have a name
     const namn = String(row[0] || '').trim()
-    if (!namn) continue
+    if (namn) {
+      const branschRaw = String(row[1] || '').trim()
+      const merBranschRaw = String(row[2] || '').trim()
 
-    const branschRaw = String(row[1] || '').trim()
-    const merBranschRaw = String(row[2] || '').trim()
+      const branschLower = (branschRaw + ' ' + merBranschRaw).toLowerCase()
+      const stadsFlag = branschLower.includes('städ')
+      const restaurangFlag = branschLower.includes('restaurang')
 
-    // Detect städ/restaurang flags from bransch text
-    const branschLower = (branschRaw + ' ' + merBranschRaw).toLowerCase()
-    const stadsFlag = branschLower.includes('städ')
-    const restaurangFlag = branschLower.includes('restaurang')
+      const keywordSource = [branschRaw, merBranschRaw].filter(Boolean).join(', ')
+      const keywords = keywordSource
+        .split(/[,;\n]+/)
+        .map((k) => k.trim())
+        .filter((k) => k.length > 1 && k.length < 50)
 
-    // Extract keywords from bransch fields
-    const keywordSource = [branschRaw, merBranschRaw].filter(Boolean).join(', ')
-    const keywords = keywordSource
-      .split(/[,;\n]+/)
-      .map((k) => k.trim())
-      .filter((k) => k.length > 1 && k.length < 50)
+      kandidater.push({
+        id: `kandidat-${i}`,
+        namn,
+        bransch: branschRaw,
+        merBransch: merBranschRaw,
+        nystartsjobb: parseBoolean(row[3]),
+        loneansprak: String(row[4] || '').trim(),
+        korkort: parseBoolean(row[5]),
+        introduktionsjobb: parseBoolean(row[6]),
+        slutdatum: parseDate(row[7]),
+        cv1: String(row[8] || '').trim(),
+        cv2: String(row[9] || '').trim(),
+        cv3: String(row[10] || '').trim(),
+        stadsFlag,
+        restaurangFlag,
+        keywords,
+        rad: i,
+      })
+    }
 
-    kandidater.push({
-      id: `kandidat-${i}`,
-      namn,
-      bransch: branschRaw,
-      merBransch: merBranschRaw,
-      nystartsjobb: parseBoolean(row[3]),
-      loneansprak: String(row[4] || '').trim(),
-      korkort: parseBoolean(row[5]),
-      introduktionsjobb: parseBoolean(row[6]),
-      slutdatum: parseDate(row[7]),
-      cv1: String(row[8] || '').trim(),
-      cv2: String(row[9] || '').trim(),
-      cv3: String(row[10] || '').trim(),
-      stadsFlag,
-      restaurangFlag,
-      keywords,
-      rad: i,
-    })
-
-    // Jobb on right side (col 13=N tjänst, 14=O arbetsgivare, 15=P plats, 16=Q syss, 17=R lön, 18=S krav, 19=T meriter, 20=U presenterad)
+    // Jobs: column N (index 13) must have a title — independent of whether there's a candidate on this row
     const tjänst = String(row[13] || '').trim()
     if (tjänst) {
       jobbNikola.push({
