@@ -63,6 +63,7 @@ function JobbKort({
   onMatch,
   matchResults,
   matching,
+  cvErrors,
   onFeedback,
   onPresenteradUpdate,
 }: {
@@ -71,6 +72,7 @@ function JobbKort({
   onMatch: (jobb: Jobb) => void
   matchResults: MatchResult[] | null
   matching: boolean
+  cvErrors: string[]
   onFeedback: (jobb: Jobb) => void
   onPresenteradUpdate: (jobbId: string, presenterad: string) => void
 }) {
@@ -200,15 +202,28 @@ function JobbKort({
         <div className="mt-4 border-t border-gray-100 pt-3">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+            className="w-full flex items-center justify-between bg-indigo-50 hover:bg-indigo-100 rounded-lg px-3 py-2 transition-colors"
           >
-            {expanded ? '▲' : '▼'} {matchResults.length} matchade kandidater
+            <span className="text-sm font-medium text-indigo-700">
+              {matchResults.length} matchade kandidater
+            </span>
+            <span className="text-indigo-500 text-sm">{expanded ? '▲ Dölj' : '▼ Visa'}</span>
           </button>
-          <div className="flex gap-3 mt-1">
-            <span className="text-xs text-green-600">● Stark 70%+</span>
-            <span className="text-xs text-amber-600">● Ok 40–69%</span>
-            <span className="text-xs text-gray-400">● Lägre &lt;40%</span>
-          </div>
+          {!expanded && (
+            <div className="flex gap-3 mt-1 px-1">
+              <span className="text-xs text-green-600">● {matchResults.filter(m => m.score >= 70).length} starka</span>
+              <span className="text-xs text-amber-600">● {matchResults.filter(m => m.score >= 40 && m.score < 70).length} ok</span>
+              <span className="text-xs text-gray-400">● {matchResults.filter(m => m.score < 40).length} lägre</span>
+            </div>
+          )}
+          {cvErrors.length > 0 && (
+            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2">
+              <p className="text-xs font-medium text-amber-700 mb-1">CV kunde inte läsas ({cvErrors.length} kandidater matchade utan CV):</p>
+              <ul className="text-xs text-amber-600 list-disc list-inside space-y-0.5">
+                {cvErrors.map((e, i) => <li key={i}>{e.split(':')[0]}</li>)}
+              </ul>
+            </div>
+          )}
           {expanded && (
             <div className="mt-2 space-y-2">
               {matchResults.map((m, i) => {
@@ -267,7 +282,7 @@ export default function RekryterarePage() {
   const [matchResults, setMatchResults] = useState<Record<string, MatchResult[]>>({})
   const [matchingJobbId, setMatchingJobbId] = useState<string | null>(null)
   const [matchError, setMatchError] = useState<string | null>(null)
-  const [cvErrors, setCvErrors] = useState<string[] | null>(null)
+  const [cvErrors, setCvErrors] = useState<Record<string, string[]>>({})
   const [feedbackJobb, setFeedbackJobb] = useState<Jobb | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -292,7 +307,6 @@ export default function RekryterarePage() {
     if (!data) return
     setMatchingJobbId(jobb.id)
     setMatchError(null)
-    setCvErrors(null)
 
     try {
       const res = await fetch('/api/match', {
@@ -303,8 +317,8 @@ export default function RekryterarePage() {
       const json = await res.json()
 
       if (json.error) throw new Error(json.error)
-      if (json.cvErrors) setCvErrors(json.cvErrors)
 
+      setCvErrors((prev) => ({ ...prev, [jobb.id]: json.cvErrors || [] }))
       setMatchResults((prev) => ({ ...prev, [jobb.id]: json.matchningar }))
     } catch (e) {
       setMatchError(e instanceof Error ? e.message : 'Okänt fel vid matchning')
@@ -368,15 +382,6 @@ export default function RekryterarePage() {
         </div>
       )}
 
-      {cvErrors && cvErrors.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 mb-4">
-          <p className="text-sm font-medium">CV-varningar (dessa kandidater matchades utan CV):</p>
-          <ul className="text-xs mt-1 list-disc list-inside space-y-0.5">
-            {cvErrors.map((e, i) => <li key={i}>{e}</li>)}
-          </ul>
-        </div>
-      )}
-
       {jobb.length === 0 && !loading && !error && (
         <div className="text-center py-16 text-gray-400">
           {rekryterare ? 'Inga tjänster registrerade' : 'Rekryterare har inte data än'}
@@ -392,6 +397,7 @@ export default function RekryterarePage() {
             onMatch={handleMatch}
             matchResults={matchResults[j.id] || null}
             matching={matchingJobbId === j.id}
+            cvErrors={cvErrors[j.id] || []}
             onFeedback={(jobb) => setFeedbackJobb(jobb)}
             onPresenteradUpdate={handlePresenteradUpdate}
           />

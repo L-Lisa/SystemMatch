@@ -51,14 +51,42 @@ async function fetchFile(url: string): Promise<{ buffer: Buffer; contentType: st
 }
 
 async function parsePDF(buffer: Buffer): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY saknas – kan inte läsa PDF')
+
+  const { default: Anthropic } = await import('@anthropic-ai/sdk')
+  const client = new Anthropic({ apiKey })
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfParseModule = (await import('pdf-parse')) as any
-  const pdfParse = pdfParseModule.default ?? pdfParseModule
-  const result = await pdfParse(buffer)
-  if (!result.text || result.text.trim().length < 50) {
-    throw new Error('PDF verkar vara tomt eller oläsbart (kanske skannat bildformat)')
+  const response = await (client.messages.create as any)({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 2000,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: buffer.toString('base64'),
+            },
+          },
+          {
+            type: 'text',
+            text: 'Extrahera all text från detta CV. Svara endast med texten, utan kommentarer eller förklaringar.',
+          },
+        ],
+      },
+    ],
+  })
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : ''
+  if (!text || text.trim().length < 20) {
+    throw new Error('Kunde inte läsa PDF-innehållet')
   }
-  return result.text
+  return text
 }
 
 async function parseDOCX(buffer: Buffer): Promise<string> {
