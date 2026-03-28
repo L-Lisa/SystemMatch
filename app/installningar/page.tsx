@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { PromptHistoryEntry } from '@/lib/types'
 
 interface Settings {
   rekryterarPrompt: string
@@ -38,6 +39,9 @@ export default function InstallningarPage() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
+  const [history, setHistory] = useState<PromptHistoryEntry[]>([])
+  const [restoring, setRestoring] = useState<string | null>(null)
+  const [restoreError, setRestoreError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -48,6 +52,11 @@ export default function InstallningarPage() {
     fetch('/api/feedback')
       .then((r) => r.json())
       .then(setFeedback)
+      .catch(() => {})
+
+    fetch('/api/settings/history')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setHistory(data) })
       .catch(() => {})
   }, [])
 
@@ -121,17 +130,48 @@ export default function InstallningarPage() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rekryterarPrompt: improveResult.forbattradPrompt }),
+        body: JSON.stringify({
+          rekryterarPrompt: improveResult.forbattradPrompt,
+          changesSummary: improveResult.vadAndrades.join(' · '),
+        }),
       })
       const json = await res.json()
       if (json.error) throw new Error(json.error)
       setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt, feedbackCount: 0 }))
       setImproveResult(null)
       setShowPromptDiff(false)
+      fetch('/api/settings/history')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setHistory(data) })
+        .catch(() => {})
     } catch (e) {
       setApplyError(e instanceof Error ? e.message : 'Kunde inte spara – försök igen')
     } finally {
       setApplying(false)
+    }
+  }
+
+  async function restorePrompt(entry: PromptHistoryEntry) {
+    setRestoring(entry.id)
+    setRestoreError(null)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rekryterarPrompt: entry.prompt,
+          changesSummary: `Återställd till version från ${new Date(entry.createdAt).toLocaleDateString('sv-SE')}`,
+        }),
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      setSettings((s) => ({ ...s, rekryterarPrompt: entry.prompt }))
+      const updated = await fetch('/api/settings/history').then((r) => r.json())
+      if (Array.isArray(updated)) setHistory(updated)
+    } catch (e) {
+      setRestoreError(e instanceof Error ? e.message : 'Kunde inte återställa')
+    } finally {
+      setRestoring(null)
     }
   }
 
@@ -257,6 +297,42 @@ export default function InstallningarPage() {
         </button>
         {saveError && <p className="text-sm text-red-500">{saveError}</p>}
       </div>
+
+      {/* Prompt Version History */}
+      <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
+        <h2 className="font-semibold text-gray-800 mb-3">Versionshistorik – prompt</h2>
+        {history.length === 0 ? (
+          <p className="text-sm text-gray-400">Ingen historik ännu – sparas automatiskt vid nästa ändring</p>
+        ) : (
+          <div className="space-y-2">
+            {restoreError && <p className="text-xs text-red-500 mb-2">⚠ {restoreError}</p>}
+            {history.map((entry) => (
+              <div key={entry.id} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400 mb-1">
+                      {new Date(entry.createdAt).toLocaleString('sv-SE')}
+                    </p>
+                    {entry.changesSummary && (
+                      <p className="text-xs text-indigo-600 mb-1">{entry.changesSummary}</p>
+                    )}
+                    <p className="text-xs text-gray-500 font-mono truncate">
+                      {entry.prompt.slice(0, 120)}…
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => restorePrompt(entry)}
+                    disabled={restoring === entry.id}
+                    className="shrink-0 text-xs text-gray-500 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
+                  >
+                    {restoring === entry.id ? 'Återställer...' : 'Återställ'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Feedback History */}
       <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">

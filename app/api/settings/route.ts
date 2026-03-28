@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
 
     if (typeof body.rekryterarPrompt === 'string') {
-      await saveDbPrompt(body.rekryterarPrompt)
+      const changesSummary = typeof body.changesSummary === 'string' ? body.changesSummary : undefined
+      await saveDbPrompt(body.rekryterarPrompt, changesSummary)
     }
 
     return NextResponse.json({ ok: true })

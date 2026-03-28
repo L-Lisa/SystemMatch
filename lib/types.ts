@@ -59,6 +59,13 @@ export interface AppSettings {
   rekryterarPrompt: string
 }
 
+export interface PromptHistoryEntry {
+  id: string
+  prompt: string
+  changesSummary: string | null
+  createdAt: string
+}
+
 export interface ExcelData {
   kandidater: Kandidat[]
   rekryterare: Rekryterare[]
