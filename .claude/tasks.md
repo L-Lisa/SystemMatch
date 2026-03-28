@@ -134,7 +134,7 @@ These bugs make the self-improving system unreliable. Nothing else matters until
 ---
 
 ### TASK-07 — Move meta-prompt to constants file
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-28
 **Bug:** B7  
 **Why it matters:** When the meta-prompt needs tuning (it will), we should not have to touch route logic. Separation of concerns.
 
