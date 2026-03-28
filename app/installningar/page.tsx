@@ -59,7 +59,7 @@ export default function InstallningarPage() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({ rekryterarPrompt: settings.rekryterarPrompt }),
       })
       const json = await res.json()
       if (json.error) throw new Error(json.error)
@@ -125,7 +125,7 @@ export default function InstallningarPage() {
       })
       const json = await res.json()
       if (json.error) throw new Error(json.error)
-      setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt }))
+      setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt, feedbackCount: 0 }))
       setImproveResult(null)
       setShowPromptDiff(false)
     } catch (e) {

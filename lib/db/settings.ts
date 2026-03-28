@@ -29,15 +29,7 @@ export async function getFeedbackCount(): Promise<number> {
 }
 
 export async function incrementFeedbackCount(): Promise<void> {
-  const current = await getFeedbackCount()
-  const { error } = await getSupabase()
-    .from('app_settings')
-    .upsert({
-      key: 'feedback_count_since_last_improvement',
-      value: String(current + 1),
-      updated_at: new Date().toISOString(),
-    })
-
+  const { error } = await getSupabase().rpc('increment_feedback_count')
   if (error) throw new Error(`Kunde inte uppdatera feedback-räknare: ${error.message}`)
 }
 
