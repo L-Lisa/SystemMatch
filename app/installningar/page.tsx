@@ -74,6 +74,10 @@ export default function InstallningarPage() {
       if (json.error) throw new Error(json.error)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      fetch('/api/settings/history')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setHistory(data) })
+        .catch(() => {})
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Okänt fel')
     } finally {
@@ -166,8 +170,10 @@ export default function InstallningarPage() {
       const json = await res.json()
       if (json.error) throw new Error(json.error)
       setSettings((s) => ({ ...s, rekryterarPrompt: entry.prompt }))
-      const updated = await fetch('/api/settings/history').then((r) => r.json())
-      if (Array.isArray(updated)) setHistory(updated)
+      fetch('/api/settings/history')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setHistory(data) })
+        .catch(() => {})
     } catch (e) {
       setRestoreError(e instanceof Error ? e.message : 'Kunde inte återställa')
     } finally {

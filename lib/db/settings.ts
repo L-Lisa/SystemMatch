@@ -17,11 +17,13 @@ export async function saveDbPrompt(prompt: string, changesSummary?: string): Pro
   // Archive the current prompt before overwriting it
   const current = await getDbPrompt()
   if (current) {
-    await db.from('app_settings_history').insert({
+    const { error: historyError } = await db.from('app_settings_history').insert({
       prompt: current,
       changes_summary: changesSummary ?? null,
     })
-    // History insert failure is non-fatal — we still save the new prompt
+    if (historyError) {
+      console.error('Kunde inte spara prompt till historik:', historyError.message)
+    }
   }
 
   const { error } = await db
@@ -63,14 +65,3 @@ export async function incrementFeedbackCount(): Promise<void> {
   if (error) throw new Error(`Kunde inte uppdatera feedback-räknare: ${error.message}`)
 }
 
-export async function resetFeedbackCount(): Promise<void> {
-  const { error } = await getSupabase()
-    .from('app_settings')
-    .upsert({
-      key: 'feedback_count_since_last_improvement',
-      value: '0',
-      updated_at: new Date().toISOString(),
-    })
-
-  if (error) throw new Error(`Kunde inte nollställa feedback-räknare: ${error.message}`)
-}
