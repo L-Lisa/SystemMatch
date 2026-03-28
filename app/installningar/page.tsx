@@ -33,6 +33,8 @@ export default function InstallningarPage() {
   } | null>(null)
   const [improveError, setImproveError] = useState<string | null>(null)
   const [showPromptDiff, setShowPromptDiff] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [applyError, setApplyError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -111,11 +113,26 @@ export default function InstallningarPage() {
     }
   }
 
-  function applyImprovedPrompt() {
+  async function applyImprovedPrompt() {
     if (!improveResult) return
-    setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt }))
-    setImproveResult(null)
-    setShowPromptDiff(false)
+    setApplying(true)
+    setApplyError(null)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rekryterarPrompt: improveResult.forbattradPrompt }),
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt }))
+      setImproveResult(null)
+      setShowPromptDiff(false)
+    } catch (e) {
+      setApplyError(e instanceof Error ? e.message : 'Kunde inte spara – försök igen')
+    } finally {
+      setApplying(false)
+    }
   }
 
   const suggestImprove = settings.feedbackCount >= 5
@@ -206,16 +223,21 @@ export default function InstallningarPage() {
                 <li key={i}>{v}</li>
               ))}
             </ul>
+            {applyError && (
+              <p className="text-xs text-red-600 mb-2">⚠ {applyError}</p>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={applyImprovedPrompt}
-                className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700"
+                disabled={applying}
+                className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
-                Tillämpa förbättring
+                {applying ? 'Sparar...' : 'Tillämpa förbättring'}
               </button>
               <button
-                onClick={() => setImproveResult(null)}
-                className="text-xs text-gray-500 hover:text-gray-700 px-2"
+                onClick={() => { setImproveResult(null); setApplyError(null) }}
+                disabled={applying}
+                className="text-xs text-gray-500 hover:text-gray-700 px-2 disabled:opacity-50"
               >
                 Avfärda
               </button>
