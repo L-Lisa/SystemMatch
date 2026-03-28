@@ -12,6 +12,23 @@ export async function getAllFeedback(): Promise<Feedback[]> {
   return data.map(rowToFeedback)
 }
 
+export async function getUnprocessedFeedback(): Promise<Feedback[]> {
+  const { data, error } = await getSupabase()
+    .from('feedback')
+    .select('*')
+    .eq('used_in_improvement', false)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(`Kunde inte hämta obehandlad feedback: ${error.message}`)
+
+  return data.map(rowToFeedback)
+}
+
+export async function markFeedbackProcessed(): Promise<void> {
+  const { error } = await getSupabase().rpc('mark_feedback_processed')
+  if (error) throw new Error(`Kunde inte markera feedback som behandlad: ${error.message}`)
+}
+
 export async function addFeedback(
   input: Omit<Feedback, 'id' | 'timestamp'>
 ): Promise<Feedback> {

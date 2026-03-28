@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { loadSettings } from '@/lib/settings'
 import { getDbPrompt, getFeedbackCount } from '@/lib/db/settings'
-import { getAllFeedback } from '@/lib/db/feedback'
+import { getUnprocessedFeedback, markFeedbackProcessed } from '@/lib/db/feedback'
 
 export async function POST() {
   try {
@@ -11,8 +11,8 @@ export async function POST() {
       return NextResponse.json({ error: 'Anthropic API-nyckel saknas' }, { status: 400 })
     }
 
-    const [allFeedback, dbPrompt, feedbackCount] = await Promise.all([
-      getAllFeedback(),
+    const [unprocessedFeedback, dbPrompt, feedbackCount] = await Promise.all([
+      getUnprocessedFeedback(),
       getDbPrompt(),
       getFeedbackCount(),
     ])
@@ -27,8 +27,8 @@ export async function POST() {
 
     const client = new Anthropic({ apiKey: settings.anthropicApiKey })
 
-    const feedbackText = allFeedback
-      .slice(0, 30) // newest 30 (getAllFeedback returns DESC)
+    const feedbackText = unprocessedFeedback
+      .slice(0, 30)
       .map(
         (f) =>
           `[${f.typ}] ${f.kandidatNamn} / ${f.jobbTitel}${f.resultat ? ` (${f.resultat})` : ''}: ${f.kommentar}`
@@ -66,6 +66,12 @@ Svara med JSON: { "forbattradPrompt": "...", "vad_andrades": ["punkt 1", "punkt 
     const jsonMatch = clean.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Inget JSON-svar från Claude')
     const parsed = JSON.parse(jsonMatch[0])
+
+    // Claude succeeded — mark all unprocessed feedback as consumed and reset counter.
+    // If this cleanup fails we log it but still return the result — the improvement is valid.
+    await markFeedbackProcessed().catch((e) =>
+      console.error('Kunde inte markera feedback som behandlad:', e)
+    )
 
     return NextResponse.json({
       forbattradPrompt: parsed.forbattradPrompt,
