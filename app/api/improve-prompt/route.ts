@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { loadSettings } from '@/lib/settings'
-import { getDbPrompt } from '@/lib/db/settings'
+import { getDbPrompt, getFeedbackCount } from '@/lib/db/settings'
 import { getAllFeedback } from '@/lib/db/feedback'
 
 export async function POST() {
@@ -11,11 +11,16 @@ export async function POST() {
       return NextResponse.json({ error: 'Anthropic API-nyckel saknas' }, { status: 400 })
     }
 
-    const [allFeedback, dbPrompt] = await Promise.all([getAllFeedback(), getDbPrompt()])
+    const [allFeedback, dbPrompt, feedbackCount] = await Promise.all([
+      getAllFeedback(),
+      getDbPrompt(),
+      getFeedbackCount(),
+    ])
     const currentPrompt = dbPrompt || settings.rekryterarPrompt
-    if (allFeedback.length === 0) {
+
+    if (feedbackCount < 5) {
       return NextResponse.json(
-        { error: 'Ingen feedback att analysera ännu' },
+        { error: `Minst 5 nya feedbacks krävs (${feedbackCount} just nu)` },
         { status: 400 }
       )
     }
