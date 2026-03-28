@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllFeedback, addFeedback } from '@/lib/db/feedback'
+import { incrementFeedbackCount } from '@/lib/db/settings'
 
 export async function GET() {
   try {
@@ -29,6 +30,10 @@ export async function POST(req: NextRequest) {
       kommentar,
       resultat,
     })
+
+    await incrementFeedbackCount().catch((e) =>
+      console.error('Kunde inte öka feedback-räknaren:', e)
+    )
 
     return NextResponse.json(feedback)
   } catch (err) {

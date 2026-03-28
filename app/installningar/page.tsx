@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 interface Settings {
   rekryterarPrompt: string
+  feedbackCount: number
 }
 
 interface FeedbackItem {
@@ -19,12 +20,12 @@ interface FeedbackItem {
 export default function InstallningarPage() {
   const [settings, setSettings] = useState<Settings>({
     rekryterarPrompt: '',
+    feedbackCount: 0,
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<FeedbackItem[]>([])
-  const [lastImprovedAt, setLastImprovedAt] = useState<number>(0)
   const [improving, setImproving] = useState(false)
   const [improveResult, setImproveResult] = useState<{
     forbattradPrompt: string
@@ -46,9 +47,6 @@ export default function InstallningarPage() {
       .then((r) => r.json())
       .then(setFeedback)
       .catch(() => {})
-
-    const stored = localStorage.getItem('sm_last_improved_at')
-    if (stored) setLastImprovedAt(Number(stored))
   }, [])
 
   async function handleSave() {
@@ -118,15 +116,9 @@ export default function InstallningarPage() {
     setSettings((s) => ({ ...s, rekryterarPrompt: improveResult.forbattradPrompt }))
     setImproveResult(null)
     setShowPromptDiff(false)
-    const now = Date.now()
-    localStorage.setItem('sm_last_improved_at', String(now))
-    setLastImprovedAt(now)
   }
 
-  const newFeedbackCount = feedback.filter(
-    (f) => new Date(f.timestamp).getTime() > lastImprovedAt
-  ).length
-  const suggestImprove = newFeedbackCount >= 5
+  const suggestImprove = settings.feedbackCount >= 5
 
   return (
     <div className="max-w-3xl">
@@ -169,21 +161,21 @@ export default function InstallningarPage() {
           <div className="flex flex-col items-end gap-1">
             <button
               onClick={handleImprovePrompt}
-              disabled={improving || feedback.length === 0}
+              disabled={improving || settings.feedbackCount === 0}
               className={`text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 ${
                 suggestImprove
                   ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                   : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
               }`}
-              title={feedback.length === 0 ? 'Lägg till feedback först' : 'Analysera feedback och förbättra prompten'}
+              title={settings.feedbackCount === 0 ? 'Lägg till feedback först' : 'Analysera feedback och förbättra prompten'}
             >
               {improving ? 'Analyserar...' : '✨ Förbättra prompt'}
             </button>
-            {feedback.length > 0 && (
+            {settings.feedbackCount > 0 && (
               <span className={`text-xs ${suggestImprove ? 'text-indigo-600 font-medium' : 'text-gray-400'}`}>
                 {suggestImprove
-                  ? `${newFeedbackCount} nya feedbacks – redo att köra!`
-                  : `${feedback.length} feedback totalt`}
+                  ? `${settings.feedbackCount} nya feedbacks – redo att köra!`
+                  : `${settings.feedbackCount} feedback sedan senaste förbättring`}
               </span>
             )}
           </div>

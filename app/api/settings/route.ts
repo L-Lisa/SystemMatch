@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadSettings } from '@/lib/settings'
-import { getDbPrompt, saveDbPrompt } from '@/lib/db/settings'
+import { getDbPrompt, saveDbPrompt, getFeedbackCount } from '@/lib/db/settings'
 
 export async function GET() {
   const settings = loadSettings()
-  const dbPrompt = await getDbPrompt().catch(() => null)
+  const [dbPrompt, feedbackCount] = await Promise.all([
+    getDbPrompt().catch(() => null),
+    getFeedbackCount().catch(() => 0),
+  ])
   return NextResponse.json({
     rekryterarPrompt: dbPrompt || settings.rekryterarPrompt,
+    feedbackCount,
   })
 }
 
