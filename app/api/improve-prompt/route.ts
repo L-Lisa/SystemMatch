@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { loadSettings } from '@/lib/settings'
 import { getDbPrompt, getFeedbackCount } from '@/lib/db/settings'
 import { getUnprocessedFeedback, markFeedbackProcessed } from '@/lib/db/feedback'
 
 export async function POST() {
   try {
-    const settings = loadSettings()
-    if (!settings.anthropicApiKey) {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
       return NextResponse.json({ error: 'Anthropic API-nyckel saknas' }, { status: 400 })
     }
 
-    const [unprocessedFeedback, dbPrompt, feedbackCount] = await Promise.all([
+    const [unprocessedFeedback, currentPrompt, feedbackCount] = await Promise.all([
       getUnprocessedFeedback(),
       getDbPrompt(),
       getFeedbackCount(),
     ])
-    const currentPrompt = dbPrompt || settings.rekryterarPrompt
 
     if (feedbackCount < 5) {
       return NextResponse.json(
@@ -25,7 +23,7 @@ export async function POST() {
       )
     }
 
-    const client = new Anthropic({ apiKey: settings.anthropicApiKey })
+    const client = new Anthropic({ apiKey })
 
     const feedbackText = unprocessedFeedback
       .slice(0, 30)

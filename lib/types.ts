@@ -54,11 +54,6 @@ export interface Feedback {
   timestamp: string
 }
 
-export interface AppSettings {
-  anthropicApiKey: string
-  rekryterarPrompt: string
-}
-
 export interface PromptHistoryEntry {
   id: string
   prompt: string

@@ -142,10 +142,3 @@ export async function readCV(url: string): Promise<CVReadResult> {
   }
 }
 
-export async function readAllCVs(
-  urls: string[]
-): Promise<CVReadResult[]> {
-  const validUrls = urls.filter((u) => u && u.trim())
-  if (validUrls.length === 0) return []
-  return Promise.all(validUrls.map(readCV))
-}

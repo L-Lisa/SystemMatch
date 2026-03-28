@@ -1,12 +1,4 @@
-import * as fs from 'fs'
-import path from 'path'
-import { AppSettings } from './types'
-
-const DATA_DIR =
-  process.env.NODE_ENV === 'production' ? '/tmp' : path.join(process.cwd(), 'data')
-const SETTINGS_PATH = path.join(DATA_DIR, 'settings.json')
-
-const DEFAULT_PROMPT = `Du är en erfaren rekryterare som specialiserat dig på Rusta och Matcha-programmet i Sverige.
+export const MATCH_SYSTEM_PROMPT_DEFAULT = `Du är en erfaren rekryterare som specialiserat dig på Rusta och Matcha-programmet i Sverige.
 Din uppgift är att matcha deltagare med lediga tjänster.
 
 VIKTIG FILOSOFI:
@@ -35,30 +27,3 @@ SVARA med ett JSON-objekt med dessa fält:
 }
 
 Rangordna alltid kandidaterna från högst till lägst matchning. Inkludera alla kandidater som har NÅGON potential, inte bara de uppenbara matchningarna.`
-
-export function loadSettings(): AppSettings {
-  let saved: Partial<AppSettings> = {}
-
-  try {
-    if (fs.existsSync(SETTINGS_PATH)) {
-      saved = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'))
-    }
-  } catch (e) {
-    console.error('Kunde inte läsa inställningar:', e)
-  }
-
-  return {
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY || saved.anthropicApiKey || '',
-    rekryterarPrompt: process.env.REKRYTERARE_PROMPT || saved.rekryterarPrompt || DEFAULT_PROMPT,
-  }
-}
-
-export function saveSettings(settings: AppSettings): void {
-  const dir = path.dirname(SETTINGS_PATH)
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-  }
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf-8')
-}
-
-export { DEFAULT_PROMPT }

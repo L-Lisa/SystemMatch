@@ -1,14 +1,23 @@
 import { getSupabase } from '@/lib/supabase'
 import { PromptHistoryEntry } from '@/lib/types'
+import { MATCH_SYSTEM_PROMPT_DEFAULT } from '@/lib/constants/prompts'
 
-export async function getDbPrompt(): Promise<string | null> {
+export async function getDbPrompt(): Promise<string> {
   const { data } = await getSupabase()
     .from('app_settings')
     .select('value')
     .eq('key', 'rekryterarPrompt')
     .single()
 
-  return data?.value || null
+  if (data?.value) return data.value
+
+  // DB has no prompt yet — seed it with the default so subsequent reads are consistent
+  const { error } = await getSupabase()
+    .from('app_settings')
+    .upsert({ key: 'rekryterarPrompt', value: MATCH_SYSTEM_PROMPT_DEFAULT, updated_at: new Date().toISOString() })
+  if (error) console.error('Kunde inte seeda standard-prompt:', error.message)
+
+  return MATCH_SYSTEM_PROMPT_DEFAULT
 }
 
 export async function saveDbPrompt(prompt: string, changesSummary?: string): Promise<void> {

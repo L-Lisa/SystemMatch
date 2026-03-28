@@ -368,11 +368,6 @@ export default function RekryterarePage() {
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 mb-6">
           <p className="font-medium">Fel</p>
           <p className="text-sm mt-1">{friendlyError(error)}</p>
-          {error.includes('sökväg') && (
-            <a href="/installningar" className="text-sm text-indigo-600 underline mt-2 block">
-              Gå till Inställningar
-            </a>
-          )}
         </div>
       )}
 

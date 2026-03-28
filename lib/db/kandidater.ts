@@ -98,7 +98,7 @@ export async function upsertKandidater(rows: Omit<Kandidat, 'id'>[]): Promise<vo
 
   // Mark candidates no longer in Excel as inactive
   const names = rows.map((k) => k.namn.trim().toLowerCase())
-  const { data: all } = await db.from('kandidater').select('id, namn')
+  const { data: all } = await db.from('kandidater').select('id, namn').eq('aktiv', true)
   if (all) {
     const toDeactivate = all.filter((k) => !names.includes(k.namn.toLowerCase()))
     for (const k of toDeactivate) {
