@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getDbPrompt, getFeedbackCount } from '@/lib/db/settings'
 import { getUnprocessedFeedback, markFeedbackProcessed } from '@/lib/db/feedback'
+import { IMPROVE_PROMPT_META } from '@/lib/constants/prompts'
 
 export async function POST() {
   try {
@@ -39,20 +40,9 @@ export async function POST() {
       messages: [
         {
           role: 'user',
-          content: `Du hjälper en jobbcoach att förbättra sin matchnings-prompt för ett Rusta och Matcha-program.
-
-NUVARANDE PROMPT:
-${currentPrompt}
-
-INSAMLAD FEEDBACK (de senaste matchningarna):
-${feedbackText}
-
-Analysera feedbacken och föreslå konkreta förbättringar till prompten.
-- Behåll kärnfilosofin om inkludering och Rusta och Matcha
-- Föreslå specifika tillägg eller ändringar baserat på mönster i feedbacken
-- Svara med en förbättrad version av hela prompten
-
-Svara med JSON: { "forbattradPrompt": "...", "vad_andrades": ["punkt 1", "punkt 2"] }`,
+          content: IMPROVE_PROMPT_META
+            .replace('{{currentPrompt}}', currentPrompt)
+            .replace('{{feedbackText}}', feedbackText),
         },
       ],
     })

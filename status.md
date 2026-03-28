@@ -41,7 +41,7 @@ No new features should be built until B1, B2, B3, and B6 are resolved.
 | ~~B3~~ | ~~No server-side feedback count check on /api/improve-prompt~~ | ✅ TASK-03 done 2026-03-28 |
 | ~~B4~~ | ~~Feedback never marked processed~~ | ✅ TASK-04 done 2026-03-28 |
 | ~~B5~~ | ~~No prompt version history~~ | ✅ TASK-05 done 2026-03-28 |
-| B6 | lib/settings.ts reads /tmp/settings.json (ephemeral on Vercel) | TASK-06 |
+| ~~B6~~ | ~~lib/settings.ts reads /tmp/settings.json~~ | ✅ TASK-06 done 2026-03-28 |
 | B7 | Meta-prompt hardcoded in route.ts | TASK-07 |
 
 ---

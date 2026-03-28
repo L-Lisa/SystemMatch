@@ -116,7 +116,7 @@ These bugs make the self-improving system unreliable. Nothing else matters until
 ---
 
 ### TASK-06 — Remove filesystem prompt fallback, consolidate to Supabase
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-28
 **Bug:** B6  
 **Why it matters:** Vercel's `/tmp` filesystem is ephemeral — it is wiped between deploys. Any prompt saved there is silently lost. The app currently has two conflicting sources of truth.
 

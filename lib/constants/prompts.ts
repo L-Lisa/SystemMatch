@@ -1,3 +1,18 @@
+export const IMPROVE_PROMPT_META = `Du hjälper en jobbcoach att förbättra sin matchnings-prompt för ett Rusta och Matcha-program.
+
+NUVARANDE PROMPT:
+{{currentPrompt}}
+
+INSAMLAD FEEDBACK (de senaste matchningarna):
+{{feedbackText}}
+
+Analysera feedbacken och föreslå konkreta förbättringar till prompten.
+- Behåll kärnfilosofin om inkludering och Rusta och Matcha
+- Föreslå specifika tillägg eller ändringar baserat på mönster i feedbacken
+- Svara med en förbättrad version av hela prompten
+
+Svara med JSON: { "forbattradPrompt": "...", "vad_andrades": ["punkt 1", "punkt 2"] }`
+
 export const MATCH_SYSTEM_PROMPT_DEFAULT = `Du är en erfaren rekryterare som specialiserat dig på Rusta och Matcha-programmet i Sverige.
 Din uppgift är att matcha deltagare med lediga tjänster.
 
