@@ -248,35 +248,19 @@ export default function InstallningarPage() {
 
             {/* Jobb */}
             <div className="px-3 py-2">
-              <p className="font-medium text-gray-600 mb-1.5">Jobb (Nikola) — kolumn N–U</p>
-              <table className="w-full">
-                <thead>
-                  <tr className="text-gray-400">
-                    <th className="text-left font-normal pb-1 pr-4 w-8">Kol</th>
-                    <th className="text-left font-normal pb-1 pr-4">Fält</th>
-                    <th className="text-left font-normal pb-1">Format</th>
-                  </tr>
-                </thead>
-                <tbody className="text-gray-600">
-                  {[
-                    ['N', 'Tjänst (jobbtitel)', 'Text — om tomt ignoreras raden'],
-                    ['O', 'Arbetsgivare', 'Text'],
-                    ['P', 'Plats', 'Text (t.ex. "Stockholm")'],
-                    ['Q', 'Sysselsättningsgrad', 'Text (t.ex. "100%")'],
-                    ['R', 'Lönenivå', 'Text'],
-                    ['S', 'Krav', 'Text — används av AI vid matchning'],
-                    ['T', 'Meriter', 'Text — används av AI vid matchning'],
-                    ['U', 'Presenterad', 'Text'],
-                  ].map(([col, field, format]) => (
-                    <tr key={col} className="border-t border-gray-50">
-                      <td className="py-1 pr-4 font-mono text-indigo-500 font-medium">{col}</td>
-                      <td className="py-1 pr-4">{field}</td>
-                      <td className="py-1 text-gray-400">{format}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="text-gray-300 mt-1.5">Kolumner efter U ignoreras.</p>
+              <p className="font-medium text-gray-600 mb-1.5">Jobb — per rekryterare</p>
+              <p className="text-gray-400 mb-2">
+                Varje rekryterare har en egen kolumnsektion efter kandidaterna.
+                Parsern hittar rekryterarnamn i rubrikraden och mappar automatiskt
+                kolumnrubriker som <em>Tjänst</em>, <em>Arbetsgivare/Företag</em>,
+                {' '}<em>Plats</em>, <em>Krav</em>, <em>Meriter/Merit</em>,
+                {' '}<em>Presenterad/e</em>, <em>Lönenivå/Lön</em> och
+                {' '}<em>Arbetstid/Sysselsättningsgrad/Omfattning</em>.
+              </p>
+              <p className="text-gray-400 mb-1.5">
+                Kolumnordningen spelar ingen roll — rubriktexten avgör vad som läses.
+                Nya rekryterare skapas automatiskt vid första import.
+              </p>
             </div>
           </div>
         )}

@@ -22,13 +22,23 @@ export async function upsertJobb(
 ): Promise<void> {
   const db = getSupabase()
 
-  const { data: rek } = await db
+  let { data: rek } = await db
     .from('rekryterare')
     .select('id')
     .eq('slug', rekryterareSlug)
     .single()
 
-  if (!rek) throw new Error(`Rekryterare "${rekryterareSlug}" finns inte`)
+  // Auto-create recruiter if not found
+  if (!rek) {
+    const namn = rekryterareSlug.charAt(0).toUpperCase() + rekryterareSlug.slice(1)
+    const { data: created, error: createErr } = await db
+      .from('rekryterare')
+      .insert({ namn, slug: rekryterareSlug })
+      .select('id')
+      .single()
+    if (createErr || !created) throw new Error(`Kunde inte skapa rekryterare "${rekryterareSlug}"`)
+    rek = created
+  }
 
   // Get existing jobb for this recruiter
   const { data: existing } = await db
