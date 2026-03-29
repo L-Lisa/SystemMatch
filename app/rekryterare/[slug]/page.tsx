@@ -7,13 +7,6 @@ import { friendlyError } from '@/lib/error'
 import Flagga from '@/components/Flagga'
 import FeedbackModal from '@/components/FeedbackModal'
 
-const RECRUITER_MAP: Record<string, string> = {
-  nikola: 'Nikola',
-  '2': 'Rekryterare 2',
-  '3': 'Rekryterare 3',
-  '4': 'Rekryterare 4',
-}
-
 function PresenteradList({
   presenterad,
   kandidater,
@@ -57,6 +50,168 @@ function PresenteradList({
   )
 }
 
+function MatchResultRow({
+  result,
+  kandidat,
+  onMotiveringSaved,
+}: {
+  result: MatchResult
+  kandidat: Kandidat | undefined
+  onMotiveringSaved: (newText: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(result.motivering)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  async function save() {
+    if (!result.matchningId) {
+      // No DB id — update optimistically in UI only
+      onMotiveringSaved(draft)
+      setEditing(false)
+      return
+    }
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const res = await fetch(`/api/matchningar/${result.matchningId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivering: draft }),
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      onMotiveringSaved(draft)
+      setEditing(false)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Kunde inte spara')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-800">
+          {kandidat?.namn || result.kandidatId}
+        </span>
+        <span
+          className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+            result.score >= 70
+              ? 'bg-green-100 text-green-700'
+              : result.score >= 40
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-gray-100 text-gray-500'
+          }`}
+        >
+          {result.score}%
+        </span>
+      </div>
+
+      {editing ? (
+        <div className="mt-1">
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={3}
+            className="w-full text-xs border border-indigo-300 rounded px-2 py-1 focus:outline-none focus:border-indigo-500 resize-none"
+          />
+          {saveError && <p className="text-xs text-red-500 mt-0.5">{saveError}</p>}
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {saving ? 'Sparar...' : 'Spara'}
+            </button>
+            <button
+              onClick={() => { setDraft(result.motivering); setEditing(false); setSaveError(null) }}
+              disabled={saving}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+            >
+              Avbryt
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 group flex items-start gap-1">
+          <p className="text-xs text-gray-600 flex-1">{result.motivering}</p>
+          <button
+            onClick={() => { setDraft(result.motivering); setEditing(true) }}
+            className="text-gray-300 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
+            title="Redigera motivering"
+          >
+            ✏
+          </button>
+        </div>
+      )}
+
+      {result.vinkel && (
+        <p className="text-xs text-indigo-600 mt-1 italic">
+          💡 {result.vinkel}
+        </p>
+      )}
+      {kandidat && (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {kandidat.korkort && <Flagga label="Körkort" active color="green" readonly />}
+          {kandidat.nystartsjobb && <Flagga label="Nystartsjobb" active color="blue" readonly />}
+          {kandidat.introduktionsjobb && <Flagga label="Introduktionsjobb" active color="purple" readonly />}
+          {kandidat.loneansprak && <Flagga label="Lön" value={kandidat.loneansprak} active color="amber" readonly />}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FilteredSection({ candidates }: { candidates: FilteredCandidate[] }) {
+  const [open, setOpen] = useState(false)
+  const l1 = candidates.filter((c) => c.reason === 'L1')
+  const rest = candidates.filter((c) => c.reason !== 'L1')
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+      >
+        <span>{open ? '▲' : '▼'}</span>
+        <span>{candidates.length} uteslutna kandidater</span>
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1">
+          {l1.length > 0 && (
+            <div className="text-xs text-gray-400 bg-gray-50 rounded px-2 py-1.5">
+              <span className="font-medium text-gray-500">Körkort saknas:</span>{' '}
+              {l1.map((c) => c.namn).join(', ')}
+            </div>
+          )}
+          {rest.map((c, i) => (
+            <div key={i} className="text-xs text-gray-400 bg-gray-50 rounded px-2 py-1.5">
+              <span className="text-gray-500">{c.namn}</span>
+              {c.reasons && c.reasons.length > 0 && (
+                <span className="ml-1">— {c.reasons.join(', ')}</span>
+              )}
+              {(!c.reasons || c.reasons.length === 0) && c.score !== undefined && (
+                <span className="ml-1">— poäng: {c.score}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface FilteredCandidate {
+  namn: string
+  reason: string
+  score?: number
+  reasons?: string[]
+}
+
 function JobbKort({
   jobb,
   kandidater,
@@ -64,8 +219,10 @@ function JobbKort({
   matchResults,
   matching,
   cvErrors,
+  filteredCandidates,
   onFeedback,
   onPresenteradUpdate,
+  onMotiveringUpdate,
 }: {
   jobb: Jobb
   kandidater: Kandidat[]
@@ -73,8 +230,10 @@ function JobbKort({
   matchResults: MatchResult[] | null
   matching: boolean
   cvErrors: string[]
+  filteredCandidates: FilteredCandidate[]
   onFeedback: (jobb: Jobb) => void
   onPresenteradUpdate: (jobbId: string, presenterad: string) => void
+  onMotiveringUpdate: (jobbId: string, kandidatId: string, motivering: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editingPresenterad, setEditingPresenterad] = useState(false)
@@ -131,7 +290,7 @@ function JobbKort({
             </button>
           </div>
           {(() => {
-            const withCV = kandidater.filter((k) => k.cv1 || k.cv2 || k.cv3).length
+            const withCV = kandidater.filter((k) => k.cvs && k.cvs.length > 0).length
             return (
               <span className={`text-xs ${withCV === 0 ? 'text-amber-500' : 'text-gray-400'}`}>
                 {withCV}/{kandidater.length} med CV
@@ -226,44 +385,20 @@ function JobbKort({
           )}
           {expanded && (
             <div className="mt-2 space-y-2">
-              {matchResults.map((m, i) => {
-                const kandidat = kandidater.find((k) => k.id === m.kandidatId)
-                return (
-                  <div key={i} className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-800">
-                        {kandidat?.namn || m.kandidatId}
-                      </span>
-                      <span
-                        className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                          m.score >= 70
-                            ? 'bg-green-100 text-green-700'
-                            : m.score >= 40
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {m.score}%
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">{m.motivering}</p>
-                    {m.vinkel && (
-                      <p className="text-xs text-indigo-600 mt-1 italic">
-                        💡 {m.vinkel}
-                      </p>
-                    )}
-                    {kandidat && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {kandidat.korkort && <Flagga label="Körkort" active color="green" readonly />}
-                        {kandidat.nystartsjobb && <Flagga label="Nystartsjobb" active color="blue" readonly />}
-                        {kandidat.introduktionsjobb && <Flagga label="Introduktionsjobb" active color="purple" readonly />}
-                        {kandidat.loneansprak && <Flagga label="Lön" value={kandidat.loneansprak} active color="amber" readonly />}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+              {matchResults.map((m, i) => (
+                <MatchResultRow
+                  key={i}
+                  result={m}
+                  kandidat={kandidater.find((k) => k.id === m.kandidatId)}
+                  onMotiveringSaved={(newText) => {
+                    onMotiveringUpdate(jobb.id, m.kandidatId, newText)
+                  }}
+                />
+              ))}
             </div>
+          )}
+          {expanded && filteredCandidates.length > 0 && (
+            <FilteredSection candidates={filteredCandidates} />
           )}
         </div>
       )}
@@ -271,10 +406,42 @@ function JobbKort({
   )
 }
 
+function buildExportText(
+  jobb: Jobb[],
+  matchResults: Record<string, MatchResult[]>,
+  kandidater: Kandidat[]
+): string {
+  const sections: string[] = []
+
+  for (const j of jobb) {
+    const results = matchResults[j.id]
+    if (!results || results.length === 0) continue
+
+    const heading = [j.tjänst, j.arbetsgivare, j.plats].filter(Boolean).join(' — ')
+    const lines: string[] = [`**${heading}**`]
+
+    results.forEach((m, i) => {
+      const namn = kandidater.find((k) => k.id === m.kandidatId)?.namn || m.kandidatId
+      const flags: string[] = []
+      const k = kandidater.find((c) => c.id === m.kandidatId)
+      if (k?.nystartsjobb) flags.push('Nystartsjobb')
+      if (k?.introduktionsjobb) flags.push('Introduktionsjobb')
+      if (k?.korkort) flags.push('Körkort')
+
+      lines.push(`${i + 1}. ${namn} (${m.score}%)${flags.length ? '  [' + flags.join(', ') + ']' : ''}`)
+      if (m.motivering) lines.push(`   ${m.motivering}`)
+      if (m.vinkel) lines.push(`   → ${m.vinkel}`)
+    })
+
+    sections.push(lines.join('\n'))
+  }
+
+  return sections.join('\n\n')
+}
+
 export default function RekryterarePage() {
   const params = useParams()
   const slug = (params?.slug as string) || ''
-  const rekryterarNamn = RECRUITER_MAP[slug.toLowerCase()] || slug
 
   const [data, setData] = useState<ExcelData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -283,7 +450,10 @@ export default function RekryterarePage() {
   const [matchingJobbId, setMatchingJobbId] = useState<string | null>(null)
   const [matchError, setMatchError] = useState<string | null>(null)
   const [cvErrors, setCvErrors] = useState<Record<string, string[]>>({})
+  const [filteredResults, setFilteredResults] = useState<Record<string, { namn: string; reason: string; score?: number; reasons?: string[] }[]>>({})
   const [feedbackJobb, setFeedbackJobb] = useState<Jobb | null>(null)
+  const [showExport, setShowExport] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const fetchData = useCallback(async () => {
     setError(null)
@@ -319,12 +489,22 @@ export default function RekryterarePage() {
       if (json.error) throw new Error(json.error)
 
       setCvErrors((prev) => ({ ...prev, [jobb.id]: json.cvErrors || [] }))
+      setFilteredResults((prev) => ({ ...prev, [jobb.id]: json.filtered || [] }))
       setMatchResults((prev) => ({ ...prev, [jobb.id]: json.matchningar }))
     } catch (e) {
       setMatchError(e instanceof Error ? e.message : 'Okänt fel vid matchning')
     } finally {
       setMatchingJobbId(null)
     }
+  }
+
+  function handleMotiveringUpdate(jobbId: string, kandidatId: string, motivering: string) {
+    setMatchResults((prev) => ({
+      ...prev,
+      [jobbId]: (prev[jobbId] || []).map((m) =>
+        m.kandidatId === kandidatId ? { ...m, motivering } : m
+      ),
+    }))
   }
 
   function handlePresenteradUpdate(jobbId: string, presenterad: string) {
@@ -340,10 +520,19 @@ export default function RekryterarePage() {
     })
   }
 
+  // Match slug against recruiter name (case-insensitive, handles URL-encoded names)
   const rekryterare = data?.rekryterare.find(
-    (r) => r.namn.toLowerCase() === rekryterarNamn.toLowerCase()
+    (r) => r.namn.toLowerCase() === decodeURIComponent(slug).toLowerCase()
   )
+  const rekryterarNamn = rekryterare?.namn || decodeURIComponent(slug)
   const jobb = rekryterare?.jobb || []
+  const hasAnyResults = jobb.some((j) => (matchResults[j.id]?.length ?? 0) > 0)
+
+  async function handleCopy(text: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div>
@@ -354,12 +543,22 @@ export default function RekryterarePage() {
             <p className="text-sm text-gray-400 mt-0.5">{jobb.length} tjänster</p>
           )}
         </div>
-        <button
-          onClick={fetchData}
-          className="text-sm bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-lg hover:border-indigo-300 hover:text-indigo-600 transition-colors"
-        >
-          ↻ Synka Excel
-        </button>
+        <div className="flex gap-2">
+          {hasAnyResults && (
+            <button
+              onClick={() => setShowExport(true)}
+              className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Exportera
+            </button>
+          )}
+          <button
+            onClick={fetchData}
+            className="text-sm bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-lg hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+          >
+            ↻ Synka Excel
+          </button>
+        </div>
       </div>
 
       {loading && <div className="text-center py-16 text-gray-400">Laddar...</div>}
@@ -393,8 +592,10 @@ export default function RekryterarePage() {
             matchResults={matchResults[j.id] || null}
             matching={matchingJobbId === j.id}
             cvErrors={cvErrors[j.id] || []}
+            filteredCandidates={filteredResults[j.id] || []}
             onFeedback={(jobb) => setFeedbackJobb(jobb)}
             onPresenteradUpdate={handlePresenteradUpdate}
+            onMotiveringUpdate={handleMotiveringUpdate}
           />
         ))}
       </div>
@@ -406,6 +607,58 @@ export default function RekryterarePage() {
           onClose={() => setFeedbackJobb(null)}
         />
       )}
+
+      {showExport && data && (() => {
+        const exportText = buildExportText(jobb, matchResults, data.kandidater)
+        return (
+          <div
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowExport(false) }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh]">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div>
+                  <h2 className="font-semibold text-gray-900">Exportera matchningar</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Kopiera och klistra in i Teams, e-post eller dokument.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowExport(false)}
+                  className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-5">
+                <textarea
+                  readOnly
+                  value={exportText}
+                  className="w-full h-full min-h-64 text-sm font-mono border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:border-indigo-300 bg-gray-50 text-gray-700 leading-relaxed"
+                  onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                />
+              </div>
+
+              <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-400">
+                  Klicka i texten för att markera allt · Rubriker visas fetstilta i Teams och Slack
+                </p>
+                <button
+                  onClick={() => handleCopy(exportText)}
+                  className={`text-sm font-medium px-5 py-2 rounded-lg transition-colors ${
+                    copied
+                      ? 'bg-green-600 text-white'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {copied ? '✓ Kopierat!' : 'Kopiera all text'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

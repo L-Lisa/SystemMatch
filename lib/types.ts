@@ -1,3 +1,12 @@
+export interface CV {
+  id: string
+  kandidatId: string
+  rubrik: string
+  url: string
+  cvText: string
+  skapad: string
+}
+
 export interface Kandidat {
   id: string
   namn: string
@@ -8,9 +17,7 @@ export interface Kandidat {
   korkort: boolean
   introduktionsjobb: boolean
   slutdatum: string
-  cv1: string
-  cv2: string
-  cv3: string
+  cvs: CV[]
   stadsFlag: boolean
   restaurangFlag: boolean
   keywords: string[]
@@ -22,6 +29,7 @@ export interface MatchResult {
   score: number
   motivering: string
   vinkel: string
+  matchningId?: string // DB id — present after a match run that persisted results
 }
 
 export interface Jobb {
@@ -38,8 +46,21 @@ export interface Jobb {
 }
 
 export interface Rekryterare {
+  id: string
   namn: string
   jobb: Jobb[]
+}
+
+export interface Matchning {
+  id: string
+  kandidatId: string
+  jobbId: string
+  rekryterareId: string
+  score: number
+  aiMotivering: string
+  vinkel: string
+  aiMotiveringRedigerad: boolean
+  korningDatum: string
 }
 
 export interface Feedback {

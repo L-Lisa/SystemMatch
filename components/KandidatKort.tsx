@@ -1,13 +1,14 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Kandidat } from '@/lib/types'
+import { Kandidat, CV } from '@/lib/types'
 import Flagga from './Flagga'
 
 interface KandidatKortProps {
   kandidat: Kandidat
   onFlagToggle: (id: string, flag: string, value: boolean) => void
-  onCVUpdate: (id: string, cvIndex: 1 | 2 | 3, url: string) => void
+  onCVAdd: (id: string, cv: CV) => void
+  onCVDelete: (id: string, cvId: string) => void
 }
 
 function isExpired(slutdatum: string | undefined | null): boolean {
@@ -16,31 +17,23 @@ function isExpired(slutdatum: string | undefined | null): boolean {
   return !isNaN(d.getTime()) && d < new Date()
 }
 
-export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: KandidatKortProps) {
+export default function KandidatKort({ kandidat, onFlagToggle, onCVAdd, onCVDelete }: KandidatKortProps) {
   const expired = isExpired(kandidat.slutdatum)
   const [expanded, setExpanded] = useState(false)
-  const [uploadingCV, setUploadingCV] = useState<1 | 2 | 3 | null>(null)
-  const [cvStatus, setCvStatus] = useState<Record<number, 'idle' | 'uploading' | 'ok' | 'error'>>({})
-  const [cvError, setCvError] = useState<Record<number, string>>({})
-  const fileInputRefs = {
-    1: useRef<HTMLInputElement>(null),
-    2: useRef<HTMLInputElement>(null),
-    3: useRef<HTMLInputElement>(null),
-  }
+  const [cvStatus, setCvStatus] = useState<Record<string, 'uploading' | 'ok' | 'error'>>({})
+  const [cvError, setCvError] = useState<Record<string, string>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const cvSlots = [
-    { idx: 1 as const, url: kandidat.cv1 },
-    { idx: 2 as const, url: kandidat.cv2 },
-    { idx: 3 as const, url: kandidat.cv3 },
-  ]
+  const canAddCV = kandidat.cvs.length < 4
 
-  async function handleFileUpload(idx: 1 | 2 | 3, file: File) {
-    setCvStatus((s) => ({ ...s, [idx]: 'uploading' }))
-    setCvError((e) => ({ ...e, [idx]: '' }))
+  async function handleFileUpload(file: File) {
+    const tempKey = `new-${Date.now()}`
+    setCvStatus((s) => ({ ...s, [tempKey]: 'uploading' }))
+    setCvError((e) => ({ ...e, [tempKey]: '' }))
     try {
       const form = new FormData()
       form.append('file', file)
-      form.append('cvIndex', String(idx))
+      form.append('rubrik', file.name.replace(/\.[^.]+$/, ''))
 
       const res = await fetch(`/api/kandidater/${kandidat.id}/cv`, {
         method: 'POST',
@@ -50,32 +43,43 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
 
       if (!res.ok) throw new Error(data.error || 'Uppladdning misslyckades')
 
-      onCVUpdate(kandidat.id, idx, data.url)
-      setCvStatus((s) => ({ ...s, [idx]: 'ok' }))
-      setTimeout(() => setCvStatus((s) => ({ ...s, [idx]: 'idle' })), 2000)
+      onCVAdd(kandidat.id, data.cv)
+      setCvStatus((s) => {
+        const next = { ...s }
+        delete next[tempKey]
+        return next
+      })
     } catch (err) {
-      setCvStatus((s) => ({ ...s, [idx]: 'error' }))
-      setCvError((e) => ({ ...e, [idx]: err instanceof Error ? err.message : 'Okänt fel' }))
+      setCvStatus((s) => ({ ...s, [tempKey]: 'error' }))
+      setCvError((e) => ({ ...e, [tempKey]: err instanceof Error ? err.message : 'Okänt fel' }))
     }
-    setUploadingCV(null)
   }
 
-  async function handleDelete(idx: 1 | 2 | 3) {
-    setCvStatus((s) => ({ ...s, [idx]: 'uploading' }))
+  async function handleDelete(cv: CV) {
+    setCvStatus((s) => ({ ...s, [cv.id]: 'uploading' }))
     try {
       const res = await fetch(`/api/kandidater/${kandidat.id}/cv`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvIndex: idx }),
+        body: JSON.stringify({ cvId: cv.id }),
       })
       if (!res.ok) throw new Error('Kunde inte ta bort CV')
-      onCVUpdate(kandidat.id, idx, '')
-      setCvStatus((s) => ({ ...s, [idx]: 'idle' }))
+      onCVDelete(kandidat.id, cv.id)
+      setCvStatus((s) => {
+        const next = { ...s }
+        delete next[cv.id]
+        return next
+      })
     } catch (err) {
-      setCvStatus((s) => ({ ...s, [idx]: 'error' }))
-      setCvError((e) => ({ ...e, [idx]: err instanceof Error ? err.message : 'Okänt fel' }))
+      setCvStatus((s) => ({ ...s, [cv.id]: 'error' }))
+      setCvError((e) => ({ ...e, [cv.id]: err instanceof Error ? err.message : 'Okänt fel' }))
     }
   }
+
+  const uploadingNew = Object.entries(cvStatus).some(
+    ([k, v]) => k.startsWith('new-') && v === 'uploading'
+  )
+  const newUploadError = Object.entries(cvError).find(([k]) => k.startsWith('new-'))?.[1]
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border p-4 transition-shadow ${expired ? 'border-gray-200 opacity-50' : 'border-gray-100 hover:shadow-md'}`}>
@@ -109,66 +113,65 @@ export default function KandidatKort({ kandidat, onFlagToggle, onCVUpdate }: Kan
           onClick={() => onFlagToggle(kandidat.id, 'restaurangFlag', !kandidat.restaurangFlag)} />
       </div>
 
-      {/* CV Slots */}
+      {/* CV list */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {cvSlots.map(({ idx, url }) => (
-          <div key={idx}>
-            <input
-              ref={fileInputRefs[idx]}
-              type="file"
-              accept=".pdf,.docx,.doc"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) handleFileUpload(idx, file)
-                e.target.value = ''
-              }}
-            />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.docx,.doc"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) handleFileUpload(file)
+            e.target.value = ''
+          }}
+        />
 
-            {url ? (
-              <div className="flex items-center gap-1">
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                    cvStatus[idx] === 'ok'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-                >
-                  {cvStatus[idx] === 'uploading' ? '...' : cvStatus[idx] === 'ok' ? '✓ CV ' + idx : 'CV ' + idx}
-                </a>
-                <button
-                  onClick={() => fileInputRefs[idx].current?.click()}
-                  className="text-gray-300 hover:text-indigo-400 text-xs"
-                  title="Byt ut CV"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => handleDelete(idx)}
-                  className="text-gray-300 hover:text-red-400 text-xs"
-                  title="Ta bort CV"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRefs[idx].current?.click()}
-                disabled={cvStatus[idx] === 'uploading'}
-                className="text-xs bg-gray-50 text-gray-400 border border-dashed border-gray-200 px-2 py-0.5 rounded hover:border-indigo-300 hover:text-indigo-400 transition-colors disabled:opacity-50"
+        {kandidat.cvs.map((cv) => (
+          <div key={cv.id}>
+            <div className="flex items-center gap-1">
+              <a
+                href={cv.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                  cvStatus[cv.id] === 'ok'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                }`}
+                title={cv.rubrik}
               >
-                {cvStatus[idx] === 'uploading' ? '...' : `+ CV ${idx}`}
+                {cvStatus[cv.id] === 'uploading' ? '...' : cv.rubrik || 'CV'}
+              </a>
+              <button
+                onClick={() => handleDelete(cv)}
+                disabled={cvStatus[cv.id] === 'uploading'}
+                className="text-gray-300 hover:text-red-400 text-xs disabled:opacity-50"
+                title="Ta bort CV"
+              >
+                ✕
               </button>
-            )}
-
-            {cvStatus[idx] === 'error' && (
-              <p className="text-xs text-red-500 mt-1">⚠ {cvError[idx]}</p>
+            </div>
+            {cvStatus[cv.id] === 'error' && (
+              <p className="text-xs text-red-500 mt-1">⚠ {cvError[cv.id]}</p>
             )}
           </div>
         ))}
+
+        {canAddCV && (
+          <div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingNew}
+              className="text-xs bg-gray-50 text-gray-400 border border-dashed border-gray-200 px-2 py-0.5 rounded hover:border-indigo-300 hover:text-indigo-400 transition-colors disabled:opacity-50"
+            >
+              {uploadingNew ? '...' : '+ CV'}
+            </button>
+            {newUploadError && (
+              <p className="text-xs text-red-500 mt-1">⚠ {newUploadError}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Expandable Keywords */}

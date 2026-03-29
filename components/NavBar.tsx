@@ -2,14 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-const links = [
+interface NavLink {
+  href: string
+  label: string
+}
+
+const staticLinks: NavLink[] = [
   { href: '/kandidater', label: 'Kandidater' },
-  { href: '/rekryterare/nikola', label: 'Nikola' },
-  { href: '/rekryterare/2', label: 'Rekryterare 2' },
-  { href: '/rekryterare/3', label: 'Rekryterare 3' },
-  { href: '/rekryterare/4', label: 'Rekryterare 4' },
+]
+
+const trailingLinks: NavLink[] = [
   { href: '/installningar', label: 'Inställningar' },
 ]
 
@@ -17,6 +21,25 @@ export default function NavBar() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [rekryterareLinks, setRekryterareLinks] = useState<NavLink[]>([])
+
+  useEffect(() => {
+    fetch('/api/excel')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.rekryterare && Array.isArray(data.rekryterare)) {
+          setRekryterareLinks(
+            data.rekryterare.map((r: { namn: string }) => ({
+              href: `/rekryterare/${encodeURIComponent(r.namn.toLowerCase())}`,
+              label: r.namn,
+            }))
+          )
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const links = [...staticLinks, ...rekryterareLinks, ...trailingLinks]
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })

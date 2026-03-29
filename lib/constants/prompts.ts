@@ -14,7 +14,7 @@ Analysera feedbacken och föreslå konkreta förbättringar till prompten.
 Svara med JSON: { "forbattradPrompt": "...", "vad_andrades": ["punkt 1", "punkt 2"] }`
 
 export const MATCH_SYSTEM_PROMPT_DEFAULT = `Du är en erfaren rekryterare som specialiserat dig på Rusta och Matcha-programmet i Sverige.
-Din uppgift är att matcha deltagare med lediga tjänster.
+Din uppgift är att bedöma hur väl EN kandidat matchar en specifik tjänst.
 
 VIKTIG FILOSOFI:
 - Du jobbar med Rusta och Matcha - deltagarna har ofta unika förutsättningar och olika bakgrunder
@@ -29,16 +29,12 @@ VID MATCHNING - analysera:
 3. Flaggor: körkort (viktigt om det är krav!), nystartsjobb, introduktionsjobb, löneanspråk
 4. Slutdatum i programmet - är kandidaten fortfarande aktiv?
 
-SVARA med ett JSON-objekt med dessa fält:
+SVARA med ett JSON-objekt:
 {
-  "matchningar": [
-    {
-      "kandidatId": "...",
-      "score": 0-100,
-      "motivering": "Kort motivering på svenska (2-3 meningar)",
-      "vinkel": "Hur ska denna kandidat presenteras för arbetsgivaren? (1-2 meningar)"
-    }
-  ]
+  "score": 0-100,
+  "motivering": "Kort motivering på svenska (2-3 meningar)",
+  "vinkel": "Hur ska denna kandidat presenteras för arbetsgivaren? (1-2 meningar)"
 }
 
-Rangordna alltid kandidaterna från högst till lägst matchning. Inkludera alla kandidater som har NÅGON potential, inte bara de uppenbara matchningarna.`
+Ge en absolut bedömning av matchkvaliteten — inte relativ till andra kandidater.
+Score-guide: 80-100 = Stark match, 50-79 = Möjlig match med rätt vinkel, 20-49 = Svag men inte omöjlig, 0-19 = Ingen relevant koppling.`

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { readCV } from '@/lib/cv-reader'
-import { getDbPrompt } from '@/lib/db/settings'
-import { getAllFeedback, buildFeedbackContext } from '@/lib/db/feedback'
+import { saveMatchningar } from '@/lib/db/matchningar'
+import { getSupabase } from '@/lib/supabase'
+import { runMatchingEngine } from '@/lib/matching/engine'
 import { Kandidat, Jobb } from '@/lib/types'
 
 export async function POST(req: NextRequest) {
@@ -27,99 +27,76 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const client = new Anthropic({ apiKey })
+    // Build CV text map — prefer stored cv_text, fall back to URL fetch for legacy rows
+    const cvErrors: string[] = []
+    const cvTexts = new Map<string, string>()
 
-    // Read CVs for all candidates
-    const kandidaterMedCV = await Promise.all(
+    await Promise.all(
       kandidater.map(async (k) => {
-        const cvUrls = [k.cv1, k.cv2, k.cv3].filter(Boolean)
-        const cvResults = await Promise.all(cvUrls.map(readCV))
+        const stored = k.cvs.filter((cv) => cv.cvText).map((cv) => cv.cvText)
+        const toFetch = k.cvs.filter((cv) => !cv.cvText && cv.url)
+        const fetched = await Promise.all(toFetch.map((cv) => readCV(cv.url)))
 
-        const cvErrors = cvResults.filter((r) => !r.success)
-        const cvTexts = cvResults.filter((r) => r.success).map((r) => r.text || '')
+        fetched
+          .filter((r) => !r.success)
+          .forEach((r) => cvErrors.push(`${k.namn}: ${r.error}`))
 
-        return {
-          ...k,
-          cvText: cvTexts.join('\n\n---\n\n'),
-          cvErrors: cvErrors.map((e) => e.error),
-          hasCVErrors: cvErrors.length > 0,
-        }
+        // Cache fetched CV text back to DB so future runs skip the URL fetch
+        const db = getSupabase()
+        await Promise.all(
+          toFetch.map((cv, i) => {
+            if (fetched[i].success && fetched[i].text) {
+              return db.from('cv').update({ cv_text: fetched[i].text }).eq('id', cv.id)
+                .then(({ error }) => {
+                  if (error) cvErrors.push(`CV-cache misslyckades för ${k.namn}`)
+                })
+            }
+          })
+        )
+
+        const allText = [
+          ...stored,
+          ...fetched.filter((r) => r.success).map((r) => r.text ?? ''),
+        ].join('\n\n---\n\n')
+
+        if (allText) cvTexts.set(k.id, allText)
       })
     )
 
-    // Check for CV errors - report them but don't block
-    const cvErrorReport = kandidaterMedCV
-      .filter((k) => k.hasCVErrors)
-      .map((k) => `${k.namn}: ${k.cvErrors.join(', ')}`)
+    const { matchningar, filtered } = await runMatchingEngine(jobb, kandidater, cvTexts, apiKey)
 
-    // Build kandidat summaries for Claude
-    const kandidatSummaries = kandidaterMedCV.map((k) => {
-      const flags = []
-      if (k.korkort) flags.push('Körkort: JA')
-      if (k.nystartsjobb) flags.push('Nystartsjobb: JA')
-      if (k.introduktionsjobb) flags.push('Introduktionsjobb/Utvecklingsgarantin: JA')
-      if (k.loneansprak) flags.push(`Löneanspråk: ${k.loneansprak}`)
-      if (k.stadsFlag) flags.push('Erfarenhet: Städ')
-      if (k.restaurangFlag) flags.push('Erfarenhet: Restaurang')
-      if (k.slutdatum) flags.push(`Slutdatum program: ${k.slutdatum}`)
+    // Persist results
+    const { data: jobbRow } = await getSupabase()
+      .from('jobb')
+      .select('rekryterare_id')
+      .eq('id', jobb.id)
+      .single()
 
-      return `=== KANDIDAT: ${k.namn} (ID: ${k.id}) ===
-Bransch/Kompetenser: ${k.bransch}
-${k.merBransch ? `Mer info: ${k.merBransch}` : ''}
-${flags.length > 0 ? `Flaggor: ${flags.join(' | ')}` : ''}
-${k.cvText ? `CV:\n${k.cvText.slice(0, 3000)}` : '[INGET CV UPPLADDAT - matcha enbart på bransch och flaggor]'}`
-    })
-
-    const [allFeedback, prompt] = await Promise.all([getAllFeedback(), getDbPrompt()])
-    const feedbackContext = buildFeedbackContext(jobb.id, allFeedback)
-
-    const userMessage = `Tjänst att matcha mot:
-Titel: ${jobb.tjänst}
-Arbetsgivare: ${jobb.arbetsgivare}
-Plats: ${jobb.plats}
-Krav: ${jobb.krav || 'Inga specifika krav angivna'}
-Meriter: ${jobb.meriter || 'Inga meriter angivna'}
-${feedbackContext}
-
-Kandidater att matcha:
-
-${kandidatSummaries.join('\n\n')}`
-
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt + '\n\n' + userMessage,
-        },
-      ],
-    })
-
-    const responseText =
-      response.content[0].type === 'text' ? response.content[0].text : ''
-
-    // Parse JSON from response
-    let matchningar
-    try {
-      const clean = responseText.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
-      const jsonMatch = clean.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) throw new Error('Inget JSON-svar från Claude')
-      const parsed = JSON.parse(jsonMatch[0])
-      matchningar = parsed.matchningar
-    } catch (e) {
-      return NextResponse.json(
-        {
-          error: `Kunde inte tolka svar från Claude: ${e instanceof Error ? e.message : 'okänt fel'}`,
-          rawResponse: responseText,
-        },
-        { status: 500 }
-      )
+    let matchningarWithIds = matchningar
+    if (jobbRow?.rekryterare_id && matchningar.length > 0) {
+      const idMap = await saveMatchningar(
+        matchningar.map((m) => ({
+          kandidatId: m.kandidatId,
+          jobbId: jobb.id,
+          rekryterareId: jobbRow.rekryterare_id as string,
+          score: m.score,
+          aiMotivering: m.motivering,
+          vinkel: m.vinkel,
+        }))
+      ).catch((e) => {
+        console.error('Kunde inte spara matchningar:', e)
+        return new Map<string, string>()
+      })
+      matchningarWithIds = matchningar.map((m) => ({
+        ...m,
+        matchningId: idMap.get(m.kandidatId),
+      }))
     }
 
     return NextResponse.json({
-      matchningar,
-      cvErrors: cvErrorReport.length > 0 ? cvErrorReport : null,
+      matchningar: matchningarWithIds,
+      filtered,
+      cvErrors: cvErrors.length > 0 ? cvErrors : null,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Okänt fel'

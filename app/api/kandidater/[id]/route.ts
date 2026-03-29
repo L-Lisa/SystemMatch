@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateKandidatFlags, updateKandidatCV } from '@/lib/db/kandidater'
+import { updateKandidatFlags } from '@/lib/db/kandidater'
 
 export async function PATCH(
   req: NextRequest,
@@ -16,8 +16,6 @@ export async function PATCH(
         Object.entries(updates).filter(([k]) => ALLOWED_FLAGS.includes(k))
       )
       await updateKandidatFlags(id, safe)
-    } else if (type === 'cv') {
-      await updateKandidatCV(id, updates.cvIndex, updates.url)
     } else {
       return NextResponse.json({ error: 'Okänd uppdateringstyp' }, { status: 400 })
     }

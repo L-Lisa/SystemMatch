@@ -182,6 +182,7 @@ export default function InstallningarPage() {
   }
 
   const suggestImprove = settings.feedbackCount >= 5
+  const [showColumnGuide, setShowColumnGuide] = useState(false)
 
   return (
     <div className="max-w-3xl">
@@ -191,8 +192,95 @@ export default function InstallningarPage() {
       <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
         <h2 className="font-semibold text-gray-800 mb-1">Importera från Excel</h2>
         <p className="text-sm text-gray-500 mb-3">
-          Ladda upp din Excel-fil (.xlsx) för att synka kandidater och jobb med databasen. Befintliga CV-länkar och flaggor bevaras.
+          Ladda upp din Excel-fil (.xlsx) för att synka kandidater och jobb med databasen.
+          Befintliga CV-uppladdningar och flaggor bevaras vid import.
+          Extra kolumner ignoreras — du kan ha fler kolumner än vad som anges nedan.
         </p>
+
+        {/* Column guide toggle */}
+        <button
+          onClick={() => setShowColumnGuide((v) => !v)}
+          className="text-xs text-indigo-600 hover:text-indigo-800 mb-3 flex items-center gap-1"
+        >
+          <span>{showColumnGuide ? '▲' : '▼'}</span>
+          <span>{showColumnGuide ? 'Dölj kolumnstruktur' : 'Visa vilka kolumner som läses'}</span>
+        </button>
+
+        {showColumnGuide && (
+          <div className="mb-4 rounded-lg border border-gray-100 overflow-hidden text-xs">
+            <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+              <p className="font-medium text-gray-700">Blad: <code className="bg-white px-1 rounded border border-gray-200">Blad1</code></p>
+              <p className="text-gray-400 mt-0.5">Rad 1 = rubrikrad (ignoreras). Data börjar på rad 2.</p>
+            </div>
+
+            {/* Kandidater */}
+            <div className="px-3 py-2 border-b border-gray-100">
+              <p className="font-medium text-gray-600 mb-1.5">Kandidater — kolumn A–H</p>
+              <table className="w-full">
+                <thead>
+                  <tr className="text-gray-400">
+                    <th className="text-left font-normal pb-1 pr-4 w-8">Kol</th>
+                    <th className="text-left font-normal pb-1 pr-4">Fält</th>
+                    <th className="text-left font-normal pb-1">Format</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-600">
+                  {[
+                    ['A', 'Namn', 'Text — om tomt ignoreras raden'],
+                    ['B', 'Bransch / Kompetenser', 'Text, kommaseparerat'],
+                    ['C', 'Mer info (bransch 2)', 'Text, valfritt'],
+                    ['D', 'Nystartsjobb', 'Ja / Nej'],
+                    ['E', 'Löneanspråk', 'Text (t.ex. "25 000 kr")'],
+                    ['F', 'Körkort', 'Ja / Nej'],
+                    ['G', 'Introduktionsjobb', 'Ja / Nej'],
+                    ['H', 'Slutdatum', 'Datum (t.ex. 2026-06-30)'],
+                  ].map(([col, field, format]) => (
+                    <tr key={col} className="border-t border-gray-50">
+                      <td className="py-1 pr-4 font-mono text-indigo-500 font-medium">{col}</td>
+                      <td className="py-1 pr-4">{field}</td>
+                      <td className="py-1 text-gray-400">{format}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-gray-300 mt-1.5">Kolumn I–M ignoreras.</p>
+            </div>
+
+            {/* Jobb */}
+            <div className="px-3 py-2">
+              <p className="font-medium text-gray-600 mb-1.5">Jobb (Nikola) — kolumn N–U</p>
+              <table className="w-full">
+                <thead>
+                  <tr className="text-gray-400">
+                    <th className="text-left font-normal pb-1 pr-4 w-8">Kol</th>
+                    <th className="text-left font-normal pb-1 pr-4">Fält</th>
+                    <th className="text-left font-normal pb-1">Format</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-600">
+                  {[
+                    ['N', 'Tjänst (jobbtitel)', 'Text — om tomt ignoreras raden'],
+                    ['O', 'Arbetsgivare', 'Text'],
+                    ['P', 'Plats', 'Text (t.ex. "Stockholm")'],
+                    ['Q', 'Sysselsättningsgrad', 'Text (t.ex. "100%")'],
+                    ['R', 'Lönenivå', 'Text'],
+                    ['S', 'Krav', 'Text — används av AI vid matchning'],
+                    ['T', 'Meriter', 'Text — används av AI vid matchning'],
+                    ['U', 'Presenterad', 'Text'],
+                  ].map(([col, field, format]) => (
+                    <tr key={col} className="border-t border-gray-50">
+                      <td className="py-1 pr-4 font-mono text-indigo-500 font-medium">{col}</td>
+                      <td className="py-1 pr-4">{field}</td>
+                      <td className="py-1 text-gray-400">{format}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-gray-300 mt-1.5">Kolumner efter U ignoreras.</p>
+            </div>
+          </div>
+        )}
+
         <label className={`inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
           {importing ? 'Importerar...' : '↑ Välj Excel-fil'}
           <input

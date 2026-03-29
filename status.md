@@ -7,15 +7,15 @@
 ---
 
 ## Last updated
-2026-03-28 — Initial baseline from code analysis
+2026-03-29 — TASK-13 complete
 
 ---
 
-## Current state: FEEDBACK LOOP BUILT, BUGS NEED FIXING
+## Current state: PHASE 4 IN PROGRESS
 
-The self-improving prompt loop is architecturally in place.
-Core bugs (B1–B3, B6) are breaking its reliability.
-No new features should be built until B1, B2, B3, and B6 are resolved.
+All 7 bugs in the feedback loop have been fixed.
+The self-improving prompt system is reliable and ready for real use.
+Phase 2 begins next: data model fixes before the matching engine.
 
 ---
 
@@ -42,7 +42,7 @@ No new features should be built until B1, B2, B3, and B6 are resolved.
 | ~~B4~~ | ~~Feedback never marked processed~~ | ✅ TASK-04 done 2026-03-28 |
 | ~~B5~~ | ~~No prompt version history~~ | ✅ TASK-05 done 2026-03-28 |
 | ~~B6~~ | ~~lib/settings.ts reads /tmp/settings.json~~ | ✅ TASK-06 done 2026-03-28 |
-| B7 | Meta-prompt hardcoded in route.ts | TASK-07 |
+| ~~B7~~ | ~~Meta-prompt hardcoded in route.ts~~ | ✅ TASK-07 done 2026-03-28 |
 
 ---
 
@@ -50,12 +50,12 @@ No new features should be built until B1, B2, B3, and B6 are resolved.
 
 | Feature | Task |
 |---|---|
-| CV schema migration (separate cv table + PDF support) | TASK-08 |
-| matchningar table | TASK-09 |
-| 3-layer matching engine | TASK-10 |
-| Dashboard view | TASK-11 |
-| Export view per recruiter | TASK-12 |
-| Editable AI motivations | TASK-13 |
+| ~~CV schema migration (separate cv table + PDF support)~~ | ✅ TASK-08 done 2026-03-28 |
+| ~~matchningar table~~ | ✅ TASK-09 done 2026-03-28 |
+| ~~3-layer matching engine~~ | ✅ TASK-10 done 2026-03-28 |
+| ~~Dashboard view~~ | ✅ TASK-11 done 2026-03-29 |
+| ~~Export view per recruiter~~ | ✅ TASK-12 done 2026-03-29 |
+| ~~Editable AI motivations~~ | ✅ TASK-13 done 2026-03-29 |
 
 ---
 
@@ -87,7 +87,7 @@ None — ready to start TASK-01.
 
 ## In progress
 
-Nothing currently in progress.
+Nothing currently in progress. All TASKS.md tasks complete.
 
 ---
 
@@ -103,6 +103,17 @@ Nothing currently in progress.
 | 2026-03-28 | TASK-04 complete — used_in_improvement column + atomic stored procedure | Claude |
 | 2026-03-28 | Code review fixes — atomic increment, feedbackCount UI reset, handleSave cleanup | Claude |
 | 2026-03-28 | TASK-05 complete — prompt version history + rollback UI | Claude |
+| 2026-03-28 | TASK-06 complete — lib/settings.ts deleted, all prompts via Supabase | Claude |
+| 2026-03-28 | TASK-07 complete — meta-prompt moved to lib/constants/prompts.ts | Claude |
+| 2026-03-28 | PHASE 1 COMPLETE — all 7 feedback loop bugs resolved | Claude |
+| 2026-03-28 | TASK-08 complete — cv table created, 42 CVs migrated, cv1/cv2/cv3 dropped, all TypeScript updated | Claude |
+| 2026-03-28 | TASK-09 complete — matchningar table + vinkel column, saveMatchningar/getMatchningarForJobb, match route persists results | Claude |
+| 2026-03-28 | TASK-10 complete — 3-layer engine: L1 (körkort hard block), L2 (token+category scoring, threshold=15), L3 (Claude per candidate), 21 tests pass | Claude |
+| 2026-03-29 | TASK-11 complete — Excel import section: expandable column guide showing A–H (kandidater) + N–U (jobb), notes on ignored columns and preserved CV/flags | Claude |
+| 2026-03-29 | TASK-12 complete — Export modal: **bold** headings per role, ranked candidates with score/motivering/vinkel/flags, one-click copy, closes on backdrop click | Claude |
+| 2026-03-29 | TASK-13 complete — Editable motiveringar: inline edit per match result, PATCH /api/matchningar/[id], saves to DB with ai_motivering_redigerad=true. Also: fixed system prompt from batch→per-candidate format, added CV text caching after URL fetch | Claude |
+| 2026-03-29 | Code review fixar — Layer 2 öppnad (prioritering, inte blockering, max 40 till Claude), prompt hämtas 1 gång, IT/HR token-vitlista, CV-trunkering markerad, retry vid timeout, CV-cache awaitat, filterförklaringar i UI, RECRUITER_MAP borttagen → dynamisk navbar | Claude |
+| 2026-03-29 | Produktion/säkerhet — import stöder alla rekryterare (inte bara nikola), jobb soft-delete (skyddar matchhistorik), namnormalisering mot dubbletter, CV max 10MB, signed URLs 30 dagar (GDPR), tmp-fil cleanup | Claude |
 
 ---
 

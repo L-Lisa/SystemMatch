@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Kandidat, ExcelData } from '@/lib/types'
+import { Kandidat, CV, ExcelData } from '@/lib/types'
 import { friendlyError } from '@/lib/error'
 import KandidatKort from '@/components/KandidatKort'
 
@@ -111,31 +111,28 @@ export default function KandidaterPage() {
     }
   }
 
-  async function handleCVUpdate(id: string, cvIndex: 1 | 2 | 3, url: string) {
-    if (!data) return
-
+  function handleCVAdd(id: string, cv: CV) {
     setData((prev) => {
       if (!prev) return prev
       return {
         ...prev,
-        kandidater: prev.kandidater.map((k) => {
-          if (k.id !== id) return k
-          const cvKey = `cv${cvIndex}` as 'cv1' | 'cv2' | 'cv3'
-          return { ...k, [cvKey]: url }
-        }),
+        kandidater: prev.kandidater.map((k) =>
+          k.id === id ? { ...k, cvs: [...k.cvs, cv] } : k
+        ),
       }
     })
+  }
 
-    try {
-      const res = await fetch(`/api/kandidater/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'cv', cvIndex, url }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    } catch (e) {
-      console.error('Kunde inte spara CV-länk:', e)
-    }
+  function handleCVDelete(id: string, cvId: string) {
+    setData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        kandidater: prev.kandidater.map((k) =>
+          k.id === id ? { ...k, cvs: k.cvs.filter((c) => c.id !== cvId) } : k
+        ),
+      }
+    })
   }
 
   function toggleFlag(flag: string) {
@@ -244,7 +241,8 @@ export default function KandidaterPage() {
                 key={k.id}
                 kandidat={k}
                 onFlagToggle={handleFlagToggle}
-                onCVUpdate={handleCVUpdate}
+                onCVAdd={handleCVAdd}
+                onCVDelete={handleCVDelete}
               />
             ))}
           </div>

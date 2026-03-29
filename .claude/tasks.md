@@ -156,7 +156,7 @@ These bugs make the self-improving system unreliable. Nothing else matters until
 ---
 
 ### TASK-08 — Migrate CV schema: separate cv table + add PDF support
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-28
 **Why it matters:** The current `cv1/cv2/cv3` columns on `kandidater` cannot scale, are hard to query, and limit CVs to 3. The v1 app had a proper separate table.
 
 **Before starting this task:** Ask Lisa what CV formats her participants use (DOCX, PDF, or both?).
@@ -188,7 +188,7 @@ These bugs make the self-improving system unreliable. Nothing else matters until
 ---
 
 ### TASK-09 — Add matchningar table
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-28
 **Why it matters:** Without this table, match results are not persisted. Every match run is stateless — Lisa cannot see history or compare runs.
 
 **What to build:**
@@ -217,7 +217,7 @@ These bugs make the self-improving system unreliable. Nothing else matters until
 ## PHASE 3 — Build the matching engine
 
 ### TASK-10 — 3-layer matching engine
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-28
 **Dependency:** TASK-08 and TASK-09 must be complete first.
 
 **Before starting:** Ask Lisa for 2–3 examples of good matches and 2–3 examples of bad matches.
@@ -248,8 +248,8 @@ semanticMatch(kandidat: Kandidat, jobb: Jobb): Promise<MatchResult>
 
 ## PHASE 4 — Views
 
-### TASK-11 — Dashboard view
-**Status:** 🔲 Not started  
+### TASK-11 — Dashboard view (Excel import column guide)
+**Status:** ✅ Done — 2026-03-29
 **Dependency:** TASK-09 and TASK-10 must be complete first.
 
 Ask Lisa: what does she need to see on the dashboard? What decisions does it help her make?
@@ -257,7 +257,7 @@ Ask Lisa: what does she need to see on the dashboard? What decisions does it hel
 ---
 
 ### TASK-12 — Export view per recruiter
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-29
 **Dependency:** TASK-10 must be complete first.
 
 Ask Lisa: what format does she need? Plain text to copy? Or something else?
@@ -265,7 +265,7 @@ Ask Lisa: what format does she need? Plain text to copy? Or something else?
 ---
 
 ### TASK-13 — Editable AI motivations
-**Status:** 🔲 Not started  
+**Status:** ✅ Done — 2026-03-29
 **Dependency:** TASK-09 must be complete first.
 
 Lisa should be able to edit `ai_motivering` per match. Edits set `ai_motivering_redigerad = true`.

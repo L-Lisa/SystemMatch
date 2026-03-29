@@ -5,6 +5,7 @@ import { upsertKandidater } from '@/lib/db/kandidater'
 import { upsertJobb } from '@/lib/db/jobb'
 
 export async function POST(req: NextRequest) {
+  const tmpPath = '/tmp/import.xlsx'
   try {
     const form = await req.formData()
     const file = form.get('file') as File | null
@@ -19,21 +20,31 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const tmpPath = '/tmp/import.xlsx'
     fs.writeFileSync(tmpPath, buffer)
 
     const data = await readExcel(tmpPath)
 
     await upsertKandidater(data.kandidater)
-    await upsertJobb(data.rekryterare[0].jobb, 'nikola')
+
+    // Import jobs for ALL recruiters in the Excel (not just the first one)
+    let totalJobb = 0
+    for (const rek of data.rekryterare) {
+      if (rek.jobb.length > 0) {
+        await upsertJobb(rek.jobb, rek.namn.toLowerCase())
+        totalJobb += rek.jobb.length
+      }
+    }
 
     return NextResponse.json({
       ok: true,
       kandidater: data.kandidater.length,
-      jobb: data.rekryterare[0].jobb.length,
+      jobb: totalJobb,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Okänt fel'
     return NextResponse.json({ error: msg }, { status: 500 })
+  } finally {
+    // Clean up temp file
+    try { fs.unlinkSync(tmpPath) } catch { /* already gone */ }
   }
 }

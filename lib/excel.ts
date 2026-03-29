@@ -85,9 +85,7 @@ export async function readExcel(filePathOrUrl: string): Promise<ExcelData> {
         korkort: parseBoolean(row[5]),
         introduktionsjobb: parseBoolean(row[6]),
         slutdatum: parseDate(row[7]),
-        cv1: String(row[8] || '').trim(),
-        cv2: String(row[9] || '').trim(),
-        cv3: String(row[10] || '').trim(),
+        cvs: [],
         stadsFlag,
         restaurangFlag,
         keywords,
@@ -113,12 +111,11 @@ export async function readExcel(filePathOrUrl: string): Promise<ExcelData> {
     }
   }
 
-  const rekryterare: Rekryterare[] = [
-    { namn: 'Nikola', jobb: jobbNikola },
-    { namn: 'Rekryterare 2', jobb: [] },
-    { namn: 'Rekryterare 3', jobb: [] },
-    { namn: 'Rekryterare 4', jobb: [] },
-  ]
+  // Only include recruiters that have jobs — no dummy entries
+  const rekryterare: Rekryterare[] = []
+  if (jobbNikola.length > 0) {
+    rekryterare.push({ id: '', namn: 'Nikola', jobb: jobbNikola })
+  }
 
   return { kandidater, rekryterare }
 }
