@@ -60,12 +60,18 @@ export async function runMatchingEngine(
   // Fetch prompt once for all Layer 3 calls
   const prompt = await getDbPrompt()
 
-  // Layer 3 — run concurrently, collect results (nulls from parse failures are dropped)
-  const l3Results = await Promise.all(
-    l3Candidates.map((c) =>
-      semanticMatch(c.kandidat, jobb, cvTexts.get(c.kandidat.id) ?? '', client, prompt)
+  // Layer 3 — run in batches of 5 to avoid rate limits
+  const BATCH_SIZE = 5
+  const l3Results: (MatchResult | null)[] = []
+  for (let i = 0; i < l3Candidates.length; i += BATCH_SIZE) {
+    const batch = l3Candidates.slice(i, i + BATCH_SIZE)
+    const batchResults = await Promise.all(
+      batch.map((c) =>
+        semanticMatch(c.kandidat, jobb, cvTexts.get(c.kandidat.id) ?? '', client, prompt)
+      )
     )
-  )
+    l3Results.push(...batchResults)
+  }
 
   const matchningar = l3Results
     .filter((r): r is MatchResult => r !== null)

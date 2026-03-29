@@ -9,8 +9,10 @@ export interface MatchScore {
  * Max candidates to send to Layer 3 (Claude) per job.
  * Sorted by L2 score descending — highest-scoring candidates first.
  * This controls cost while letting Claude handle semantic matching.
+ *
+ * 15 keeps API costs and rate limits manageable (~15 Sonnet calls per job).
  */
-export const L3_MAX_CANDIDATES = 40
+export const L3_MAX_CANDIDATES = 15
 
 /**
  * Broad industry categories used to detect semantic proximity between a candidate
