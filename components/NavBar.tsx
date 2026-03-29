@@ -29,10 +29,12 @@ export default function NavBar() {
       .then((data) => {
         if (data.rekryterare && Array.isArray(data.rekryterare)) {
           setRekryterareLinks(
-            data.rekryterare.map((r: { namn: string }) => ({
-              href: `/rekryterare/${encodeURIComponent(r.namn.toLowerCase())}`,
-              label: r.namn,
-            }))
+            data.rekryterare
+              .filter((r: { namn: string; jobb: unknown[] }) => r.jobb && r.jobb.length > 0)
+              .map((r: { namn: string }) => ({
+                href: `/rekryterare/${encodeURIComponent(r.namn.toLowerCase())}`,
+                label: r.namn,
+              }))
           )
         }
       })
