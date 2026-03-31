@@ -86,3 +86,26 @@ export interface ExcelData {
   kandidater: Kandidat[]
   rekryterare: Rekryterare[]
 }
+
+export interface JobbFocusResultItem {
+  kandidatId: string
+  namn: string
+  titel: string
+  flaggor: string[]
+  motivering: string
+  detaljer: string
+}
+
+export interface JobbFocusQuery {
+  id: string | null
+  prompt: string
+  results: JobbFocusResultItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface JobbFocusHistoryItem {
+  id: string
+  prompt: string
+  createdAt: string
+}

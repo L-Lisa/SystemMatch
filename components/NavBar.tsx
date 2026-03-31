@@ -11,6 +11,7 @@ interface NavLink {
 
 const staticLinks: NavLink[] = [
   { href: '/kandidater', label: 'Kandidater' },
+  { href: '/jobb-focus', label: 'Jobb Focus' },
 ]
 
 const trailingLinks: NavLink[] = [

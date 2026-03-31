@@ -7,7 +7,7 @@
 ---
 
 ## Last updated
-2026-03-29 — TASK-13 complete
+2026-03-30 — Jobb Focus feature
 
 ---
 
@@ -87,7 +87,7 @@ None — ready to start TASK-01.
 
 ## In progress
 
-Nothing currently in progress. All TASKS.md tasks complete.
+Jobb Focus feature — kod klar, Supabase-tabell skapad, redo för deploy och test.
 
 ---
 
@@ -114,6 +114,7 @@ Nothing currently in progress. All TASKS.md tasks complete.
 | 2026-03-29 | TASK-13 complete — Editable motiveringar: inline edit per match result, PATCH /api/matchningar/[id], saves to DB with ai_motivering_redigerad=true. Also: fixed system prompt from batch→per-candidate format, added CV text caching after URL fetch | Claude |
 | 2026-03-29 | Code review fixar — Layer 2 öppnad (prioritering, inte blockering, max 40 till Claude), prompt hämtas 1 gång, IT/HR token-vitlista, CV-trunkering markerad, retry vid timeout, CV-cache awaitat, filterförklaringar i UI, RECRUITER_MAP borttagen → dynamisk navbar | Claude |
 | 2026-03-29 | Produktion/säkerhet — import stöder alla rekryterare (inte bara nikola), jobb soft-delete (skyddar matchhistorik), namnormalisering mot dubbletter, CV max 10MB, signed URLs 30 dagar (GDPR), tmp-fil cleanup | Claude |
+| 2026-03-30 | Jobb Focus — ny sida för AI-driven kandidatsökning med fri prompt, batchhantering (10 kandidater/anrop), redigerbar resultatlista, .md-export, sparad historik | Claude |
 
 ---
 

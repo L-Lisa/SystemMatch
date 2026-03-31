@@ -1,47 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { Kandidat, Jobb, MatchResult } from '@/lib/types'
-
-/** Truncate CV text at a paragraph boundary, with a visible marker. */
-function truncateCV(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text
-  const cut = text.lastIndexOf('\n', maxLen)
-  return (cut > maxLen * 0.5 ? text.slice(0, cut) : text.slice(0, maxLen)) +
-    '\n[...CV avkortat...]'
-}
-
-/**
- * Retry a function with exponential backoff on rate-limit (429) errors.
- * Attempts: 1 initial + 3 retries at 1s, 2s, 4s.
- */
-async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
-  const delays = [1000, 2000, 4000]
-  let lastError: Error = new Error('Okänt fel')
-
-  for (let attempt = 0; attempt <= delays.length; attempt++) {
-    try {
-      return await fn()
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err))
-
-      const msg = lastError.message.toLowerCase()
-      const isTransient =
-        msg.includes('429') ||
-        msg.includes('rate limit') ||
-        msg.includes('timeout') ||
-        msg.includes('etimedout') ||
-        msg.includes('econnreset') ||
-        msg.includes('socket hang up') ||
-        msg.includes('529') ||
-        msg.includes('overloaded')
-
-      if (!isTransient || attempt === delays.length) throw lastError
-
-      await new Promise((resolve) => setTimeout(resolve, delays[attempt]))
-    }
-  }
-
-  throw lastError
-}
+import { withRetry } from '@/lib/utils/retry'
+import { truncateCV } from '@/lib/utils/text'
 
 /**
  * Layer 3 — Claude semantic match.
